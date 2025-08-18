@@ -22,11 +22,9 @@ def load_status():
         with open(STATUS_FILE, 'r') as f:
             return json.load(f)
     return {"active": True}
-
 def save_status(status):
     with open(STATUS_FILE, 'w') as f:
         json.dump(status, f)
-
 bot_status = load_status()
 
 # ====== حالة التواصل ======
@@ -35,11 +33,9 @@ def load_comm():
         with open(COMM_FILE, 'r') as f:
             return json.load(f)
     return {"enabled": False}
-
 def save_comm(comm):
     with open(COMM_FILE, 'w') as f:
         json.dump(comm, f)
-
 comm_status = load_comm()
 
 # ====== المستخدمون ======
@@ -48,7 +44,6 @@ def load_users():
         with open(DATA_FILE, 'r') as f:
             return json.load(f)
     return {}
-
 def save_users(users):
     with open(DATA_FILE, 'w') as f:
         json.dump(users, f)
@@ -59,11 +54,9 @@ def load_last_links():
         with open(LAST_LINK_FILE, 'r') as f:
             return json.load(f)
     return {}
-
 def save_last_links(links):
     with open(LAST_LINK_FILE, 'w') as f:
         json.dump(links, f)
-
 last_links = load_last_links()
 
 # ====== تحميل الفيديو ======
@@ -81,37 +74,29 @@ def download_video(url, filename='video', quality='best'):
 # ====== /start ======
 @bot.message_handler(commands=['start'])
 def start(message):
-    global bot_status
     users = load_users()
     user_id = str(message.from_user.id)
-
-    # سجل المستخدم الجديد
     if user_id not in users:
         users[user_id] = {"username": message.from_user.username}
         save_users(users)
         bot.send_message(OWNER_ID, f"👤 @{message.from_user.username} فعّل البوت لأول مرة!")
 
-    # تحقق حالة البوت
+    # حالة البوت
     if not bot_status.get("active", True) and message.from_user.id != OWNER_ID:
         bot.reply_to(message, "❌ البوت متوقف حالياً من قبل المطور")
         return
 
-    # واجهة المطور
     if message.from_user.id == OWNER_ID:
         markup = InlineKeyboardMarkup()
-        # زر تشغيل/إيقاف البوت
         if bot_status.get("active", True):
             markup.add(InlineKeyboardButton("إيقاف البوت ❌", callback_data="stop_bot"))
         else:
             markup.add(InlineKeyboardButton("تشغيل البوت ✅", callback_data="start_bot"))
-        # زر تفعيل/إيقاف التواصل
         if comm_status.get("enabled", False):
             markup.add(InlineKeyboardButton("إيقاف التواصل ❌", callback_data="disable_comm"))
         else:
             markup.add(InlineKeyboardButton("تفعيل التواصل ✅", callback_data="enable_comm"))
-        # زر تحميل آخر رابط
         markup.add(InlineKeyboardButton("تحميل آخر رابط 🔄", callback_data="last_link"))
-        # زر تقرير المستخدمين
         markup.add(InlineKeyboardButton("تقرير المستخدمين 📊", callback_data="report_users"))
         bot.reply_to(message, "🔥 اهلا يا مالك البوت! استخدم القائمة:", reply_markup=markup)
     else:
@@ -120,22 +105,14 @@ def start(message):
 # ====== استقبال الرسائل ======
 @bot.message_handler(func=lambda msg: True)
 def handle_message(message):
-    global bot_status, comm_status, last_links
-
     user_id = str(message.from_user.id)
-
-    # تحقق حالة البوت
     if user_id != str(OWNER_ID) and not bot_status.get("active", True):
         bot.reply_to(message, "❌ البوت متوقف حالياً من قبل المطور")
         return
-
-    # التواصل مع المالك مفعل
     if user_id != str(OWNER_ID) and comm_status.get("enabled", False):
         bot.send_message(OWNER_ID, f"💬 رسالة من @{message.from_user.username} ({user_id}):\n{message.text}")
         bot.reply_to(message, "✅ رسالتك وصلت للمالك")
         return
-
-    # المالك يرسل رابط فيديو
     if user_id == str(OWNER_ID):
         url = message.text.strip()
         last_links['owner'] = url
@@ -150,10 +127,10 @@ def handle_message(message):
 # ====== التعامل مع الأزرار ======
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
-    global bot_status, comm_status, last_links
+    global last_links
 
-    # قائمة المطور
     if call.from_user.id == OWNER_ID:
+        # قائمة المطور
         if call.data == "stop_bot":
             bot_status["active"] = False
             save_status(bot_status)
@@ -194,31 +171,20 @@ def callback_handler(call):
             bot.send_message(call.message.chat.id, text)
             return
 
-    # التحقق من المالك للبقية
     if call.from_user.id != OWNER_ID:
         bot.answer_callback_query(call.id, "❌ هذا البوت حصري للمالك فقط", show_alert=True)
         return
 
-    # تحميل الفيديو
+    # تحميل الفيديو الفعلي
     try:
         platform, url = call.data.split("|")
         bot.edit_message_text("⏳ جاري تحميل الفيديو...", call.message.chat.id, call.message.message_id)
-
-        if platform == "tiktok":
-            file_path = download_video(url, 'tiktok')
-        elif platform == "instagram":
-            file_path = download_video(url, 'insta')
-        elif platform == "pinterest":
-            file_path = download_video(url, 'pinterest')
-        else:
-            file_path = download_video(url, 'video')
-
+        file_path = download_video(url, filename='video')
         with open(file_path, 'rb') as vid:
             bot.send_video(call.message.chat.id, vid)
         os.remove(file_path)
-
     except Exception as e:
         bot.send_message(call.message.chat.id, f"❌ صار خطأ: {e}")
 
-print("✅ البوت شغال وجاهز مع كل التحسينات")
+print("✅ البوت شغال وجاهز للتحميل مع كل المزايا")
 bot.infinity_polling()
