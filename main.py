@@ -1,190 +1,251 @@
-import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-import yt_dlp
+# -*- coding: utf-8 -*-
+# بوت نشر تلقائي كامل + أزرار تحكم كامل + نصائح أمان
+# pyTelegramBotAPI + Telethon + JSON + InlineKeyboardButtons
+
 import os
+import telebot
+from telethon import TelegramClient
+from telethon.sessions import StringSession
+from telethon.tl.types import Channel, Chat
+import asyncio
+import threading
+import time
 import json
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# متغيرات البيئة
-TOKEN = os.getenv("BOT_TOKEN")
-OWNER_ID = int(os.getenv("OWNER_ID"))
+# التوكن يقرأ من Environment Variable على Render
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+bot = telebot.TeleBot(BOT_TOKEN)
+DATA_FILE = "data.json"
 
-bot = telebot.TeleBot(TOKEN)
-
-# ملفات البيانات
-DATA_FILE = 'users.json'
-STATUS_FILE = 'bot_status.json'
-COMM_FILE = 'communication.json'
-LAST_LINK_FILE = 'last_link.json'
-
-# ====== حالة البوت ======
-def load_status():
-    if os.path.exists(STATUS_FILE):
-        with open(STATUS_FILE, 'r') as f:
+# تحميل وحفظ البيانات
+def load_data():
+    try:
+        with open(DATA_FILE, "r") as f:
             return json.load(f)
-    return {"active": True}
-def save_status(status):
-    with open(STATUS_FILE, 'w') as f:
-        json.dump(status, f)
-bot_status = load_status()
+    except:
+        return {}
 
-# ====== حالة التواصل ======
-def load_comm():
-    if os.path.exists(COMM_FILE):
-        with open(COMM_FILE, 'r') as f:
-            return json.load(f)
-    return {"enabled": False}
-def save_comm(comm):
-    with open(COMM_FILE, 'w') as f:
-        json.dump(comm, f)
-comm_status = load_comm()
+def save_data():
+    with open(DATA_FILE, "w") as f:
+        json.dump(user_data, f, ensure_ascii=False, indent=2)
 
-# ====== المستخدمون ======
-def load_users():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r') as f:
-            return json.load(f)
-    return {}
-def save_users(users):
-    with open(DATA_FILE, 'w') as f:
-        json.dump(users, f)
+user_data = load_data()
 
-# ====== آخر رابط لكل مستخدم ======
-def load_last_links():
-    if os.path.exists(LAST_LINK_FILE):
-        with open(LAST_LINK_FILE, 'r') as f:
-            return json.load(f)
-    return {}
-def save_last_links(links):
-    with open(LAST_LINK_FILE, 'w') as f:
-        json.dump(links, f)
-last_links = load_last_links()
-
-# ====== تحميل الفيديو ======
-def download_video(url, filename='video', quality='best'):
-    ydl_opts = {
-        'outtmpl': f'{filename}.%(ext)s',
-        'format': quality,
-        'noplaylist': True,
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        file_path = ydl.prepare_filename(info)
-    return file_path
-
-# ====== /start ======
+# ======== START ========
 @bot.message_handler(commands=['start'])
 def start(message):
-    users = load_users()
-    user_id = str(message.from_user.id)
-    if user_id not in users:
-        users[user_id] = {"username": message.from_user.username}
-        save_users(users)
-        bot.send_message(OWNER_ID, f"👤 @{message.from_user.username} فعّل البوت لأول مرة!")
+    uid = str(message.chat.id)
+    user_data[uid] = {}
+    save_data()
+    bot.send_message(message.chat.id, "هلا! ✌️ رح نبدأ إعداد البوت خطوة خطوة.\nأرسل **API ID** أولاً أو اضغط 'إلغاء'.")
+    user_data[uid]["waiting"] = "api_id"
 
-    # حالة البوت
-    if not bot_status.get("active", True) and message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "❌ البوت متوقف حالياً من قبل المطور")
+# ======== استقبال النصوص ========
+@bot.message_handler(func=lambda m: True)
+def handle_text(message):
+    uid = str(message.chat.id)
+    data = user_data.get(uid, {})
+    task = data.get("waiting")
+
+    if not task:
+        bot.send_message(message.chat.id, "اضغط /menu لتفتح الخيارات")
         return
 
-    if message.from_user.id == OWNER_ID:
-        markup = InlineKeyboardMarkup()
-        if bot_status.get("active", True):
-            markup.add(InlineKeyboardButton("إيقاف البوت ❌", callback_data="stop_bot"))
-        else:
-            markup.add(InlineKeyboardButton("تشغيل البوت ✅", callback_data="start_bot"))
-        if comm_status.get("enabled", False):
-            markup.add(InlineKeyboardButton("إيقاف التواصل ❌", callback_data="disable_comm"))
-        else:
-            markup.add(InlineKeyboardButton("تفعيل التواصل ✅", callback_data="enable_comm"))
-        markup.add(InlineKeyboardButton("تحميل آخر رابط 🔄", callback_data="last_link"))
-        markup.add(InlineKeyboardButton("تقرير المستخدمين 📊", callback_data="report_users"))
-        bot.reply_to(message, "🔥 اهلا يا مالك البوت! استخدم القائمة:", reply_markup=markup)
-    else:
-        bot.reply_to(message, "🔥 ابعت رابط الفيديو لتحميله 🎥")
-
-# ====== استقبال الرسائل ======
-@bot.message_handler(func=lambda msg: True)
-def handle_message(message):
-    user_id = str(message.from_user.id)
-    if user_id != str(OWNER_ID) and not bot_status.get("active", True):
-        bot.reply_to(message, "❌ البوت متوقف حالياً من قبل المطور")
-        return
-    if user_id != str(OWNER_ID) and comm_status.get("enabled", False):
-        bot.send_message(OWNER_ID, f"💬 رسالة من @{message.from_user.username} ({user_id}):\n{message.text}")
-        bot.reply_to(message, "✅ رسالتك وصلت للمالك")
-        return
-    if user_id == str(OWNER_ID):
-        url = message.text.strip()
-        last_links['owner'] = url
-        save_last_links(last_links)
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("تحميل تيك توك", callback_data=f"tiktok|{url}"))
-        markup.add(InlineKeyboardButton("تحميل انستغرام", callback_data=f"instagram|{url}"))
-        markup.add(InlineKeyboardButton("تحميل بنترست", callback_data=f"pinterest|{url}"))
-        markup.add(InlineKeyboardButton("تحميل أي رابط عام", callback_data=f"any|{url}"))
-        bot.reply_to(message, "اختر نوع التحميل:", reply_markup=markup)
-
-# ====== التعامل مع الأزرار ======
-@bot.callback_query_handler(func=lambda call: True)
-def callback_handler(call):
-    global last_links
-
-    if call.from_user.id == OWNER_ID:
-        # قائمة المطور
-        if call.data == "stop_bot":
-            bot_status["active"] = False
-            save_status(bot_status)
-            bot.edit_message_text("❌ تم إيقاف البوت حالياً", call.message.chat.id, call.message.message_id)
-            return
-        elif call.data == "start_bot":
-            bot_status["active"] = True
-            save_status(bot_status)
-            bot.edit_message_text("✅ تم تشغيل البوت", call.message.chat.id, call.message.message_id)
-            return
-        elif call.data == "enable_comm":
-            comm_status["enabled"] = True
-            save_comm(comm_status)
-            bot.edit_message_text("✅ تم تفعيل التواصل", call.message.chat.id, call.message.message_id)
-            return
-        elif call.data == "disable_comm":
-            comm_status["enabled"] = False
-            save_comm(comm_status)
-            bot.edit_message_text("❌ تم إيقاف التواصل", call.message.chat.id, call.message.message_id)
-            return
-        elif call.data == "last_link":
-            url = last_links.get('owner')
-            if url:
-                markup = InlineKeyboardMarkup()
-                markup.add(InlineKeyboardButton("تحميل تيك توك", callback_data=f"tiktok|{url}"))
-                markup.add(InlineKeyboardButton("تحميل انستغرام", callback_data=f"instagram|{url}"))
-                markup.add(InlineKeyboardButton("تحميل بنترست", callback_data=f"pinterest|{url}"))
-                markup.add(InlineKeyboardButton("تحميل أي رابط عام", callback_data=f"any|{url}"))
-                bot.send_message(call.message.chat.id, "اختر نوع التحميل لآخر رابط:", reply_markup=markup)
-            else:
-                bot.send_message(call.message.chat.id, "❌ لا يوجد رابط محفوظ")
-            return
-        elif call.data == "report_users":
-            users = load_users()
-            text = f"📊 عدد المستخدمين: {len(users)}\n"
-            for uid, info in users.items():
-                text += f"- @{info.get('username','')} ({uid})\n"
-            bot.send_message(call.message.chat.id, text)
-            return
-
-    if call.from_user.id != OWNER_ID:
-        bot.answer_callback_query(call.id, "❌ هذا البوت حصري للمالك فقط", show_alert=True)
+    if message.text.lower() == "إلغاء":
+        user_data.pop(uid, None)
+        save_data()
+        bot.send_message(message.chat.id, "❌ تم إلغاء العملية. ابدا من جديد /start")
         return
 
-    # تحميل الفيديو الفعلي
     try:
-        platform, url = call.data.split("|")
-        bot.edit_message_text("⏳ جاري تحميل الفيديو...", call.message.chat.id, call.message.message_id)
-        file_path = download_video(url, filename='video')
-        with open(file_path, 'rb') as vid:
-            bot.send_video(call.message.chat.id, vid)
-        os.remove(file_path)
-    except Exception as e:
-        bot.send_message(call.message.chat.id, f"❌ صار خطأ: {e}")
+        if task == "api_id":
+            user_data[uid]["api_id"] = int(message.text)
+            user_data[uid]["waiting"] = "api_hash"
+            bot.send_message(message.chat.id, "تمام ✅ الآن أرسل **API HASH**:")
+        elif task == "api_hash":
+            user_data[uid]["api_hash"] = message.text
+            user_data[uid]["waiting"] = "session"
+            bot.send_message(message.chat.id, "تمام ✅ الآن أرسل **String Session**:")
+        elif task == "session":
+            user_data[uid]["session"] = message.text
+            user_data[uid]["waiting"] = "msg"
+            bot.send_message(message.chat.id, "✔️ السيشن محفوظ. الآن ارسل الرسالة يلي بدك تنشرها:")
+        elif task == "msg":
+            user_data[uid]["message"] = message.text
+            user_data[uid]["waiting"] = "count"
+            bot.send_message(message.chat.id, "كم مرة بدك تنشرها؟")
+        elif task == "count":
+            user_data[uid]["count"] = int(message.text)
+            user_data[uid]["waiting"] = "delay"
+            bot.send_message(message.chat.id, "قديش الفاصل الزمني بين كل رسالة (ثواني)؟")
+        elif task == "delay":
+            user_data[uid]["delay"] = int(message.text)
+            user_data[uid]["waiting"] = None
+            bot.send_message(message.chat.id, "✅ كل البيانات جاهزة! اضغط /menu للتحكم الكامل")
+        save_data()
+    except:
+        bot.send_message(message.chat.id, "✖️ خطأ بالمدخل، جرب ترسل البيانات مرة ثانية.")
 
-print("✅ البوت شغال وجاهز للتحميل مع كل المزايا")
+# ======== MENU ========
+@bot.message_handler(commands=['menu'])
+def menu(message):
+    uid = str(message.chat.id)
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("📝 تغيير الرسالة", callback_data="set_msg"))
+    markup.add(InlineKeyboardButton("🔢 تغيير عدد المرات", callback_data="set_count"))
+    markup.add(InlineKeyboardButton("⏱️ تغيير الفاصل", callback_data="set_delay"))
+    markup.add(InlineKeyboardButton("📂 اختيار القروبات", callback_data="choose_groups"))
+    markup.add(InlineKeyboardButton("❌ إزالة قروب من المختارة", callback_data="remove_group"))
+    markup.add(InlineKeyboardButton("ℹ️ عرض الإعدادات الحالية", callback_data="show_settings"))
+    markup.add(InlineKeyboardButton("💡 نصيحة الأمان", callback_data="advice"))
+    markup.add(InlineKeyboardButton("🚀 ابدأ النشر", callback_data="start_send"))
+    markup.add(InlineKeyboardButton("🚫 حذف الجلسة وإعادة ضبط", callback_data="reset"))
+    bot.send_message(message.chat.id, "اختر العملية:", reply_markup=markup)
+
+# ======== أزرار CALLBACK ========
+@bot.callback_query_handler(func=lambda call: True)
+def callback(call):
+    uid = str(call.message.chat.id)
+    if uid not in user_data:
+        bot.send_message(call.message.chat.id, "❌ لم تبدأ العملية، اضغط /start")
+        return
+
+    if call.data == "set_msg":
+        user_data[uid]["waiting"] = "msg"
+        bot.send_message(call.message.chat.id, "اكتب الرسالة الجديدة أو 'إلغاء'")
+    elif call.data == "set_count":
+        user_data[uid]["waiting"] = "count"
+        bot.send_message(call.message.chat.id, "اكتب العدد الجديد أو 'إلغاء'")
+    elif call.data == "set_delay":
+        user_data[uid]["waiting"] = "delay"
+        bot.send_message(call.message.chat.id, "اكتب الفاصل الجديد بالثواني أو 'إلغاء'")
+    elif call.data == "choose_groups":
+        threading.Thread(target=fetch_groups, args=(uid, call.message.chat.id)).start()
+    elif call.data == "remove_group":
+        remove_group(uid, call.message.chat.id)
+    elif call.data == "show_settings":
+        show_settings(uid, call.message.chat.id)
+    elif call.data == "advice":
+        show_advice(call.message.chat.id)
+    elif call.data == "start_send":
+        threading.Thread(target=start_sending, args=(uid, call.message.chat.id)).start()
+    elif call.data == "reset":
+        user_data.pop(uid, None)
+        save_data()
+        bot.send_message(call.message.chat.id, "🚫 تم حذف كل البيانات. ابدا من جديد /start")
+    save_data()
+
+# ======== عرض الإعدادات ========
+def show_settings(uid, chat_id):
+    data = user_data.get(uid, {})
+    text = f"""
+📋 الإعدادات الحالية:
+API ID: {data.get('api_id', '❌')}
+API HASH: {data.get('api_hash', '❌')}
+Session: {'✔️ محفوظ' if 'session' in data else '❌'}
+📝 الرسالة: {data.get('message','❌')}
+🔢 العدد: {data.get('count','❌')}
+⏱️ الفاصل: {data.get('delay','❌')} ثانية
+📂 القروبات المختارة: 
+{'\n'.join([g['title'] for g in data.get('selected', [])]) if 'selected' in data else '❌ ما اخترت'}
+"""
+    bot.send_message(chat_id, text)
+
+# ======== نصائح الأمان ========
+def show_advice(chat_id):
+    advice = """
+💡 نصيحة الأمان:
+1- لا ترسل رسائل كثيرة بسرعة عالية، استخدم فاصل زمني مناسب.
+2- لا ترسل نفس الرسالة لجميع القروبات بنفس الوقت.
+3- لا تستخدم البوت على قروبات كثيرة دفعة واحدة.
+4- حاول تنويع الرسائل لو لازم تنشرها بكثرة.
+5- لا تزعج أعضاء القروبات، حتى تحمي حسابك.
+"""
+    bot.send_message(chat_id, advice)
+
+# ======== إزالة قروب ========
+def remove_group(uid, chat_id):
+    data = user_data.get(uid, {})
+    selected = data.get("selected", [])
+    if not selected:
+        bot.send_message(chat_id, "❌ ما في قروبات مختارة")
+        return
+    markup = InlineKeyboardMarkup(row_width=1)
+    for i, g in enumerate(selected):
+        markup.add(InlineKeyboardButton(f"❌ {g['title']}", callback_data=f"delg_{i}"))
+    bot.send_message(chat_id, "اختر القروب لحذفه:", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("delg_"))
+def delete_group(call):
+    uid = str(call.message.chat.id)
+    idx = int(call.data.split("_")[1])
+    if "selected" in user_data[uid]:
+        removed = user_data[uid]["selected"].pop(idx)
+        save_data()
+        bot.answer_callback_query(call.id, f"❌ حذفت {removed['title']}")
+
+# ======== Telethon اختيار القروبات ========
+def fetch_groups(uid, chat_id):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(_fetch_groups(uid, chat_id))
+
+async def _fetch_groups(uid, chat_id):
+    data = user_data[uid]
+    client = TelegramClient(StringSession(data["session"]), data["api_id"], data["api_hash"])
+    await client.start()
+    dialogs = await client.get_dialogs()
+    groups = [d for d in dialogs if isinstance(d.entity, (Channel, Chat)) and d.is_group]
+
+    user_data[uid]["groups"] = [{"id": g.id, "title": g.title} for g in groups]
+    save_data()
+
+    markup = InlineKeyboardMarkup(row_width=1)
+    for i, g in enumerate(groups):
+        markup.add(InlineKeyboardButton(g.title, callback_data=f"g_{i}"))
+    bot.send_message(chat_id, "اختر القروبات:", reply_markup=markup)
+    await client.disconnect()
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("g_"))
+def choose_group(call):
+    uid = str(call.message.chat.id)
+    idx = int(call.data.split("_")[1])
+    g = user_data[uid]["groups"][idx]
+    if "selected" not in user_data[uid]:
+        user_data[uid]["selected"] = []
+    user_data[uid]["selected"].append(g)
+    save_data()
+    bot.answer_callback_query(call.id, f"✔️ أضفت {g['title']}")
+
+# ======== بدء النشر ========
+def start_sending(uid, chat_id):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(_start_sending(uid, chat_id))
+
+async def _start_sending(uid, chat_id):
+    try:
+        data = user_data[uid]
+        client = TelegramClient(StringSession(data["session"]), data["api_id"], data["api_hash"])
+        await client.start()
+        msg = data["message"]
+        count = data["count"]
+        delay = data["delay"]
+        groups = data.get("selected", [])
+
+        for g in groups:
+            for i in range(count):
+                try:
+                    await client.send_message(g["id"], msg)
+                    time.sleep(delay)
+                except Exception as e:
+                    print("خطأ:", e)
+        await client.disconnect()
+        bot.send_message(chat_id, "✔️ خلص النشر بكل القروبات المحددة.")
+    except Exception as e:
+        bot.send_message(chat_id, f"✖️ خطأ: {e}")
+
+# ======== تشغيل ========
+print("Bot is running ...")
 bot.infinity_polling()
