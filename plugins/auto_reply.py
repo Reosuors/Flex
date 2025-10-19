@@ -75,8 +75,20 @@ async def disable_group(event):
 
 @client.on(events.NewMessage)
 async def auto_reply(event):
+    # ignore own outgoing to avoid loops
+    if event.out:
+        return
     if event.chat_id in DATA.get("enabled_groups", []):
-        text = event.raw_text.strip()
+        text = (event.raw_text or "").strip()
+        if not text:
+            return
         value = DATA["responses"].get(text)
         if value:
+            # do not reply to bots to reduce noise
+            try:
+                sender = await event.get_sender()
+                if getattr(sender, "bot", False):
+                    return
+            except Exception:
+                pass
             await event.reply(value)

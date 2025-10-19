@@ -135,9 +135,9 @@ async def reply_handler(event):
                         break
             if afk_mode:
                 if not (event.raw_text or "") in custom_replies:
-                    if reply_to_message:
+                    if reply_to_message and (reply_to_message.text or "").strip():
                         reply_text = reply_to_message.text
-                        reply = await event.reply(reply_to_message)
+                        reply = await event.reply(reply_text)
                         if last_reply_sent and getattr(last_reply_sent, "text", None) == reply_text:
                             try:
                                 await last_reply_sent.delete()

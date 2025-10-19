@@ -4,7 +4,7 @@ import re
 import random
 import aiohttp
 from PIL import Image
-from telethon import events
+from telethon import events, functions
 from telethon.errors import YouBlockedUserError
 from telethon.tl.types import MessageMediaPhoto, InputStickerSetID
 from telethon.tl.functions.messages import GetStickerSetRequest
