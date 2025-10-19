@@ -10,7 +10,7 @@ services:
     name: flex
     env: python
     buildCommand: pip install -U -r requirements.txt
-    startCommand: python3 yeman_server.py & python3 modified.py
+    startCommand: python3 yeman_server.py & python3 main.py
     region: frankfurt
     envVars:
       - key: API_HASH 

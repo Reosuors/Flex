@@ -174,8 +174,7 @@ image_folder = "iage"
 if not os.path.exists(image_folder):
     os.makedirs(image_folder)
     
-client = TelegramClient(StringSession(session_string), int(api_id), api_hash)
-client.start()
+from core.client import client
 
 if os.path.exists(response_file):
     with open(response_file, 'rb') as f:
