@@ -1,17 +1,15 @@
 import asyncio
 
-from core.client import client
-from plugins import load_all
+from app.loader import load_plugins
+from app.runner import run as run_client
 
 
 async def main():
     # Load all plugins (handlers will attach to the shared client)
-    load_all()
+    load_plugins()
 
     # Start client and block
-    await client.start()
-    print("[main] Client started. Waiting for events...")
-    await client.run_until_disconnected()
+    await run_client()
 
 
 if __name__ == "__main__":
