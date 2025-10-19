@@ -8,6 +8,9 @@ def load_all():
     importlib.import_module("plugins.stats")
     importlib.import_module("plugins.storage")
     importlib.import_module("plugins.auto_reply")
+    importlib.import_module("plugins.afk")
+    importlib.import_module("plugins.profile")
+    importlib.import_module("plugins.timers_publish")
 
     # Then load the legacy monolith (until full split is complete)
     importlib.import_module("modified")
