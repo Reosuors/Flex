@@ -11,7 +11,7 @@ from telethon.tl.functions.messages import GetStickerSetRequest
 from core.client import client
 
 # YouTube simple search (uses official API as in original)
-YOUTUBE_API_KEY = 'AIzaSyBfb8a-Ug_YQFrpWKeTc88zuI6PmHVdzV0'
+YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY', 'AIzaSyBfb8a-Ug_YQFrpWKeTc88zuI6PmHVdzV0')
 YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search'
 
 
