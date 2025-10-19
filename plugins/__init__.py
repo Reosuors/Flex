@@ -4,10 +4,10 @@ import importlib
 
 
 def load_all():
-    # Load split plugins first
-    importlib.import_module("plugins.stats")
-    importlib.import_module("plugins.storage")
-    importlib_imports = [
+    # Load split plugins
+    base = [
+        "plugins.stats",
+        "plugins.storage",
         "plugins.auto_reply",
         "plugins.afk",
         "plugins.profile",
@@ -16,9 +16,10 @@ def load_all():
         "plugins.games",
         "plugins.shortcuts_memes",
         "plugins.user_tools",
+        "plugins.media_tools",
+        "plugins.hunter",
+        "plugins.monitor",
+        "plugins.admin_tools",
     ]
-    for module in importlib_imports:
+    for module in base:
         importlib.import_module(module)
-
-    # Then load the legacy monolith (until full split is complete)
-    importlib.import_module("modified")
