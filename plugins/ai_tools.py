@@ -93,6 +93,36 @@ def simple_summarize(text: str, max_sentences: int = 3) -> str:
     result = [s for s in sentences if s in selected]
     return " ".join(result)
 
+# --- Simple AI reply (.ذكاء) ---
+def ai_reply(text: str) -> str:
+    t = (text or "").strip().lower()
+    # basic greetings
+    if "السلام" in t or "مرحبا" in t or "اهلا" in t or "هلا" in t:
+        return "وعليكم السلام! كيف أقدر أساعدك؟"
+    # how are you
+    if "كيف حالك" in t or "شلونك" in t or "كيفك" in t:
+        return "بخير الحمد لله! وأنت؟"
+    # thanks
+    if "شكرا" in t or "شكرًا" in t or "ثانكس" in t:
+        return "العفو! هذا واجبي."
+    # who are you
+    if "من انت" in t or "مين انت" in t or "من أنت" in t:
+        return "أنا مساعد FLEX الذكي—أساعدك بالأوامر والترجمة والملخصات."
+    # default fallback
+    return "حاضر! فهمت سؤالك، لكن كـ'رد ذكي' مختصر: محتاج توضيح أكثر؟"
+
+@client.on(events.NewMessage(outgoing=True, pattern=r"\.ذكاء(?:\s+([\s\S]+))?$"))
+async def ai_cmd(event):
+    msg = event.pattern_match.group(1)
+    if not msg and event.is_reply:
+        reply = await event.get_reply_message()
+        msg = reply.message or reply.raw_text
+    if not msg:
+        await event.edit("اكتب: .ذكاء <سؤالك> أو بالرد على رسالة.\nمثال: .ذكاء كيف حالك")
+        return
+    answer = ai_reply(msg)
+    await event.edit(answer)
+
 @client.on(events.NewMessage(outgoing=True, pattern=r"\.ترجم\s+(\S+)(?:\s+([\s\S]+))?$"))
 async def translate_cmd(event):
     target = event.pattern_match.group(1)
