@@ -1,4 +1,4 @@
-from telethon import events
+from telethon import events, Button
 from core.client import client
 
 # تصميم مميز لقائمة الأوامر مع تقسيمات واضحة وزخرفة بسيطة
@@ -115,6 +115,8 @@ COMMANDS = {
     ],
 }
 
+SECTIONS = list(COMMANDS.keys())
+
 def build_section(title, items):
     lines = [f"• {cmd}\n  ⤷ {desc}" for cmd, desc in items]
     return f"【 {title} 】\n" + "\n".join(lines)
@@ -126,16 +128,51 @@ def build_help_text():
         parts.append(SEPARATOR)
     parts.append(FOOTER)
     text = "\n".join(parts)
-    # إن تجاوز الحد سيتم تقسيمه لاحقًا عند الإرسال
     return text
 
+def build_section_text(title):
+    items = COMMANDS.get(title, [])
+    return HEADER + build_section(title, items) + FOOTER
+
+def build_menu_text():
+    return (
+        HEADER
+        + "اختر قسمًا من الأزرار أدناه لعرض أوامره مع الشرح.\n"
+        + FOOTER
+    )
+
+def build_menu_buttons():
+    # ترتيب الأسماء في أزرار من صفوف متوازنة
+    rows = []
+    row = []
+    for idx, title in enumerate(SECTIONS, start=1):
+        row.append(Button.inline(title, data=f"help:{title}".encode()))
+        if len(row) == 2:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
+    # صف أخير للأوامر العامة
+    rows.append([Button.inline("عرض الكل", data=b"help:ALL")])
+    return rows
+
+def build_section_buttons(title):
+    # أزرار تنقل: رجوع للقائمة + أقسام مجاورة سريعة
+    buttons = [[Button.inline("⟵ القائمة", data=b"help:MENU")]]
+    # إضافة أزرار سريعة لثلاثة أقسام أخرى
+    quick = []
+    for t in SECTIONS:
+        if t != title and len(quick) < 3:
+            quick.append(Button.inline(t, data=f"help:{t}".encode()))
+    if quick:
+        buttons.append(quick)
+    return buttons
+
 async def send_chunked(event, text, chunk_size=3500):
-    # تقسيم الرسالة إذا كانت طويلة جدًا لتجنب حد تيليجرام
     chunks = []
     while text:
         chunks.append(text[:chunk_size])
         text = text[chunk_size:]
-    # أرسل أول جزء بتحرير الرسالة، والباقي ردود
     if chunks:
         await event.edit(chunks[0])
         for ch in chunks[1:]:
@@ -146,3 +183,33 @@ async def show_commands(event):
     await event.edit("جارٍ إعداد قائمة الأوامر...")
     text = build_help_text()
     await send_chunked(event, text)
+
+# قائمة المساعدة التفاعلية
+@client.on(events.NewMessage(outgoing=True, pattern=r"\.(?:المساعدة|مساعدة)$"))
+async def show_help_menu(event):
+    await event.edit(build_menu_text(), buttons=build_menu_buttons())
+
+@client.on(events.CallbackQuery)
+async def help_callback(event):
+    data = event.data or b""
+    if not data.startswith(b"help:"):
+        return
+    key = data.decode().split(":", 1)[1]
+    if key == "MENU":
+        await event.edit(build_menu_text(), buttons=build_menu_buttons())
+    elif key == "ALL":
+        # قد تكون طويلة؛ استخدم تقسيم
+        await event.edit("جارٍ عرض جميع الأقسام...")
+        text = build_help_text()
+        # لا يمكن إرسال ردود إضافية عبر CallbackQuery مباشرة في بعض الحالات،
+        # لذا سنحوّلها برسالة جديدة في نفس الدردشة.
+        await client.send_message(event.chat_id, text)
+        await event.answer("تم الإرسال.")
+    else:
+        # قسم محدد
+        if key in COMMANDS:
+            text = build_section_text(key)
+            await event.edit(text, buttons=build_section_buttons(key))
+            await event.answer(f"تم فتح قسم: {key}")
+        else:
+            await event.answer("قسم غير معروف.", alert=True)
