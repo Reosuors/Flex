@@ -21,6 +21,7 @@ def load_all():
         "plugins.monitor",
         "plugins.admin_tools",
         "plugins.help",
+        "plugins.palette",
     ]
     for module in base:
         importlib.import_module(module)
