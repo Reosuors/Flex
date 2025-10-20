@@ -145,8 +145,8 @@ def build_menu_buttons():
     # ترتيب الأسماء في أزرار من صفوف متوازنة
     rows = []
     row = []
-    for idx, title in enumerate(SECTIONS, start=1):
-        row.append(Button.inline(title, data=f"help:{title}".encode()))
+    for idx, title in enumerate(SECTIONS):
+        row.append(Button.inline(title, data=f"help:idx:{idx}".encode()))
         if len(row) == 2:
             rows.append(row)
             row = []
@@ -156,16 +156,24 @@ def build_menu_buttons():
     rows.append([Button.inline("عرض الكل", data=b"help:ALL")])
     return rows
 
-def build_section_buttons(title):
-    # أزرار تنقل: رجوع للقائمة + أقسام مجاورة سريعة
-    buttons = [[Button.inline("⟵ القائمة", data=b"help:MENU")]]
-    # إضافة أزرار سريعة لثلاثة أقسام أخرى
-    quick = []
-    for t in SECTIONS:
-        if t != title and len(quick) < 3:
-            quick.append(Button.inline(t, data=f"help:{t}".encode()))
-    if quick:
-        buttons.append(quick)
+def build_section_buttons_by_index(index):
+    # أزرار تنقل: السابق/التالي + رجوع للقائمة
+    buttons = []
+    nav = []
+    if index > 0:
+        nav.append(Button.inline("⟵ السابق", data=f"help:idx:{index-1}".encode()))
+    else:
+        nav.append(Button.inline("⟵ القائمة", data=b"help:MENU"))
+    if index < len(SECTIONS) - 1:
+        nav.append(Button.inline("التالي ⟶", data=f"help:idx:{index+1}".encode()))
+    else:
+        nav.append(Button.inline("⟵ القائمة", data=b"help:MENU"))
+    buttons.append(nav)
+    # زر العودة الصريح + عرض الكل
+    buttons.append([
+        Button.inline("القائمة الرئيسية", data=b"help:MENU"),
+        Button.inline("عرض الكل", data=b"help:ALL")
+    ])
     return buttons
 
 async def send_chunked(event, text, chunk_size=3500):
@@ -194,22 +202,39 @@ async def help_callback(event):
     data = event.data or b""
     if not data.startswith(b"help:"):
         return
-    key = data.decode().split(":", 1)[1]
-    if key == "MENU":
-        await event.edit(build_menu_text(), buttons=build_menu_buttons())
-    elif key == "ALL":
-        # قد تكون طويلة؛ استخدم تقسيم
-        await event.edit("جارٍ عرض جميع الأقسام...")
-        text = build_help_text()
-        # لا يمكن إرسال ردود إضافية عبر CallbackQuery مباشرة في بعض الحالات،
-        # لذا سنحوّلها برسالة جديدة في نفس الدردشة.
-        await client.send_message(event.chat_id, text)
-        await event.answer("تم الإرسال.")
+    parts = data.decode().split(":")
+    # parts could be ["help", "MENU"] | ["help", "ALL"] | ["help", "idx", "N"] | ["help", "<title>"]
+    if len(parts) == 2 and parts[1] in {"MENU", "ALL"}:
+        key = parts[1]
+        if key == "MENU":
+            await event.edit(build_menu_text(), buttons=build_menu_buttons())
+        elif key == "ALL":
+            await event.edit("جارٍ عرض جميع الأقسام...")
+            text = build_help_text()
+            await client.send_message(event.chat_id, text)
+            await event.answer("تم الإرسال.")
+        return
+    if len(parts) == 3 and parts[1] == "idx":
+        try:
+            index = int(parts[2])
+        except ValueError:
+            await event.answer("فهرس غير صالح.", alert=True)
+            return
+        if not (0 <= index < len(SECTIONS)):
+            await event.answer("خارج النطاق.", alert=True)
+            return
+        title = SECTIONS[index]
+        text = build_section_text(title)
+        await event.edit(text, buttons=build_section_buttons_by_index(index))
+        await event.answer(f"تم فتح قسم: {title}")
+        return
+    # دعم قديم: العنوان مباشرةً
+    key = parts[1]
+    if key in COMMANDS:
+        title = key
+        index = SECTIONS.index(title)
+        text = build_section_text(title)
+        await event.edit(text, buttons=build_section_buttons_by_index(index))
+        await event.answer(f"تم فتح قسم: {title}")
     else:
-        # قسم محدد
-        if key in COMMANDS:
-            text = build_section_text(key)
-            await event.edit(text, buttons=build_section_buttons(key))
-            await event.answer(f"تم فتح قسم: {key}")
-        else:
-            await event.answer("قسم غير معروف.", alert=True)
+        await event.answer("قسم غير معروف.", alert=True)
