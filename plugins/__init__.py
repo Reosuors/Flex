@@ -22,6 +22,7 @@ def load_all():
         "plugins.admin_tools",
         "plugins.help",
         "plugins.inline_help",
+        "plugins.ai_tools",
     ]
     for module in base:
         importlib.import_module(module)
