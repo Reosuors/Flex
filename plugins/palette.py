@@ -78,14 +78,92 @@ def _toggles_menu():
     return text, rows
 
 
-@client.on(events.NewMessage(from_users='me', pattern=r'^\.لوحة$'))
+@client.on(events.NewMessage(from_users='me', pattern=r'^\.لوحة))
 async def palette_main(event):
-    text, buttons = _main_menu()
-    await event.reply(text, buttons=buttons)
+    me = await client.get_me()
+    if getattr(me, "bot", False):
+        text, buttons = _main_menu()
+        await event.reply(text, buttons=buttons)
+    else:
+        # User accounts لا تستقبل CallbackQuery. نعرض نسخة نصية مع أوامر مباشرة.
+        msg = (
+            "**لوحة التحكم (وضع المستخدم)**\n"
+            "- الأقسام: اكتب `.لوحة اقسام`\n"
+            "- الحالة: اكتب `.لوحة حالة`\n"
+            "- التبديل السريع: اكتب `.لوحة تبديل`\n"
+            "- أو لعرض قسم محدد: `.لوحة قسم <اسم القسم>`\n"
+            "- للتبديل المباشر: `.لوحة تبديل afk|custom|protect|storage`"
+        )
+        await event.reply(msg)
 
 
-@client.on(events.CallbackQuery)
+@client.on(events.NewMessage(from_users='me', pattern=r'^\.لوحة اقسام))
+async def palette_text_categories(event):
+    cats = "**الأقسام المتاحة:**\n" + "\n".join([f"- {c}" for c in CATEGORIES.keys()])
+    cats += "\n\nاستخدم: `.لوحة قسم <اسم القسم>`"
+    await event.edit(cats)
+
+
+@client.on(events.NewMessage(from_users='me', pattern=r'^\.لوحة حالة))
+async def palette_text_status(event):
+    snap = _status_snapshot()
+    text = "**لوحة التحكم — الحالة**\n" + "\n".join([f"- {k}: {v}" for k, v in snap.items()])
+    await event.edit(text)
+
+
+@client.on(events.NewMessage(from_users='me', pattern=r'^\.لوحة تبديل))
+async def palette_text_toggles(event):
+    snap = _status_snapshot()
+    text = "**لوحة التحكم — التبديل السريع**\n" + "\n".join([f"- {k}: {v}" for k, v in snap.items()])
+    text += "\n\nاستخدم: `.لوحة تبديل afk|custom|protect|storage`"
+    await event.edit(text)
+
+
+@client.on(events.NewMessage(from_users='me', pattern=r'^\.لوحة قسم (.+)))
+async def palette_text_category(event):
+    cat = event.pattern_match.group(1).strip()
+    await event.edit(format_commands_for(cat))
+
+
+@client.on(events.NewMessage(from_users='me', pattern=r'^\.لوحة تبديل (afk|custom|protect|storage)))
+async def palette_text_toggle(event):
+    toggle_what = event.pattern_match.group(1)
+    msg = ""
+    try:
+        if toggle_what == "afk":
+            from plugins import afk as _afk
+            _afk.afk_mode = not _afk.afk_mode
+            msg = f"تم {'تشغيل' if _afk.afk_mode else 'تعطيل'} AFK."
+        elif toggle_what == "custom":
+            from plugins import afk as _afk
+            _afk.custom_replies_enabled = not _afk.custom_replies_enabled
+            msg = f"تم {'تشغيل' if _afk.custom_replies_enabled else 'تعطيل'} الردود المخصصة."
+        elif toggle_what == "protect":
+            protection_data['enabled'] = not protection_data.get('enabled', False)
+            save_protection()
+            msg = f"تم {'تفعيل' if protection_data['enabled'] else 'تعطيل'} حماية الخاص."
+        elif toggle_what == "storage":
+            gid = _load_group_id()
+            if gid and os.path.exists(GROUP_ID_FILE):
+                os.remove(GROUP_ID_FILE)
+                msg = "تم تعطيل التخزين وإزالة ربط المجموعة."
+            else:
+                await _ensure_storage_group(event)
+                msg = "تم تفعيل التخزين وإنشاء/ربط المجموعة."
+    except Exception as e:
+        msg = f"خطأ أثناء التبديل: {e}"
+
+    snap = _status_snapshot()
+    text = msg + "\n\n" + ("**لوحة التحكم — الحالة**\n" + "\n".join([f"- {k}: {v}" for k, v in snap.items()]))
+    await event.edit(text)
+
+
+@client.on(events.CallbackQuery))
 async def palette_callbacks(event):
+    # وضع البوت فقط: يستقبل CallbackQuery
+    me = await client.get_me()
+    if not getattr(me, "bot", False):
+        return
     if not event.data or not event.data.startswith(b"palette:"):
         return
     parts = event.data.decode("utf-8", errors="ignore").split(":")
@@ -102,7 +180,7 @@ async def palette_callbacks(event):
         return await event.edit(text, buttons=buttons)
 
     if action == "cat" and len(parts) >= 3:
-        cat_name = ":".join(parts[2:])  # في حال الاسم يحوي نقطتين
+        cat_name = ":".join(parts[2:])
         try:
             text = format_commands_for(cat_name)
         except Exception:
@@ -125,38 +203,29 @@ async def palette_callbacks(event):
         msg = ""
         try:
             if toggle_what == "afk":
-                # flip the module-level variable
                 from plugins import afk as _afk
                 _afk.afk_mode = not _afk.afk_mode
                 msg = f"تم {'تشغيل' if _afk.afk_mode else 'تعطيل'} AFK."
-
             elif toggle_what == "custom":
                 from plugins import afk as _afk
                 _afk.custom_replies_enabled = not _afk.custom_replies_enabled
                 msg = f"تم {'تشغيل' if _afk.custom_replies_enabled else 'تعطيل'} الردود المخصصة."
-
             elif toggle_what == "protect":
                 protection_data['enabled'] = not protection_data.get('enabled', False)
                 save_protection()
                 msg = f"تم {'تفعيل' if protection_data['enabled'] else 'تعطيل'} حماية الخاص."
-
             elif toggle_what == "storage":
                 gid = _load_group_id()
                 if gid:
-                    # disable by removing id file
                     if os.path.exists(GROUP_ID_FILE):
                         os.remove(GROUP_ID_FILE)
                     msg = "تم تعطيل التخزين وإزالة ربط المجموعة."
                 else:
                     await _ensure_storage_group(event)
                     msg = "تم تفعيل التخزين وإنشاء/ربط المجموعة."
-
-            else:
-                msg = "أمر تبديل غير معروف."
         except Exception as e:
             msg = f"خطأ أثناء التبديل: {e}"
 
-        # Refresh toggles menu after action
         text, buttons = _toggles_menu()
         text = f"{msg}\n\n" + text
         return await event.edit(text, buttons=buttons)
