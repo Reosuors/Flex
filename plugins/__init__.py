@@ -23,6 +23,7 @@ def load_all():
         "plugins.help",
         "plugins.inline_help",
         "plugins.ai_tools",
+        "plugins.member_limit",
     ]
     for module in base:
         importlib.import_module(module)
