@@ -93,23 +93,44 @@ def simple_summarize(text: str, max_sentences: int = 3) -> str:
     result = [s for s in sentences if s in selected]
     return " ".join(result)
 
-# --- Simple AI reply (.ذكاء) ---
-def ai_reply(text: str) -> str:
+# --- Advanced AI reply (.ذكاء) with OpenAI if available, fallback to simple rules ---
+def ai_reply_simple(text: str) -> str:
     t = (text or "").strip().lower()
-    # basic greetings
     if "السلام" in t or "مرحبا" in t or "اهلا" in t or "هلا" in t:
         return "وعليكم السلام! كيف أقدر أساعدك؟"
-    # how are you
     if "كيف حالك" in t or "شلونك" in t or "كيفك" in t:
         return "بخير الحمد لله! وأنت؟"
-    # thanks
     if "شكرا" in t or "شكرًا" in t or "ثانكس" in t:
         return "العفو! هذا واجبي."
-    # who are you
     if "من انت" in t or "مين انت" in t or "من أنت" in t:
         return "أنا مساعد FLEX الذكي—أساعدك بالأوامر والترجمة والملخصات."
-    # default fallback
     return "حاضر! فهمت سؤالك، لكن كـ'رد ذكي' مختصر: محتاج توضيح أكثر؟"
+
+async def ai_reply_openai(prompt: str) -> str:
+    try:
+        from core.config import OPENAI_API_KEY
+        if not OPENAI_API_KEY:
+            return ai_reply_simple(prompt)
+        # Use new OpenAI SDK
+        try:
+            from openai import OpenAI
+        except Exception:
+            # SDK not installed; fallback
+            return ai_reply_simple(prompt)
+        client_ai = OpenAI(api_key=OPENAI_API_KEY)
+        system_msg = "أنت مساعد عربي لطيف ومختصر، تجيب بإيجاز وبأسلوب محترم، وترد دائمًا باللغة التي سُئلت بها."
+        resp = client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.6,
+            max_tokens=150,
+        )
+        return (resp.choices[0].message.content or "").strip()
+    except Exception:
+        return ai_reply_simple(prompt)
 
 @client.on(events.NewMessage(outgoing=True, pattern=r"\.ذكاء(?:\s+([\s\S]+))?$"))
 async def ai_cmd(event):
@@ -120,7 +141,7 @@ async def ai_cmd(event):
     if not msg:
         await event.edit("اكتب: .ذكاء <سؤالك> أو بالرد على رسالة.\nمثال: .ذكاء كيف حالك")
         return
-    answer = ai_reply(msg)
+    answer = await ai_reply_openai(msg)
     await event.edit(answer)
 
 @client.on(events.NewMessage(outgoing=True, pattern=r"\.ترجم\s+(\S+)(?:\s+([\s\S]+))?$"))
