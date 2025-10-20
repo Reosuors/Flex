@@ -23,7 +23,7 @@ async def edit_or_reply(event, text, buttons=None):
         return await event.edit(text, buttons=buttons)
 
 
-@client.on(events.NewMessage(pattern=r"\.قائمه (جميع القنوات|القنوات المشرف عليها |قنواتي)"))
+@client.on(events.NewMessage(pattern=r"\.قائمه (جميع القنوات|القنوات المشرف عليها|قنواتي)"))
 async def list_channels(event):
     catcmd = event.pattern_match.group(1)
     catevent = await edit_or_reply(event, STAT_INDICATION)
@@ -34,18 +34,14 @@ async def list_channels(event):
         if isinstance(entity, Channel) and entity.broadcast:
             channel_name = entity.title
             channel_id = entity.id
-            is_owner = entity.creator
-            is_admin = entity.admin_rights
+            is_owner = bool(getattr(entity, "creator", False))
+            is_admin = bool(getattr(entity, "admin_rights", None))
             if entity.username:
-                if entity.megagroup:
-                    channel_link = f"{channel_name} ({entity.username})"
-                else:
-                    channel_link = f"[{channel_name}](https://t.me/{entity.username})"
+                # القنوات العامة: رابط مباشر
+                channel_link = f"[{channel_name}](https://t.me/{entity.username})"
             else:
-                if entity.megagroup:
-                    channel_link = f"{channel_name}"
-                else:
-                    channel_link = f"[{channel_name}](https://t.me/c/{channel_id}/1)"
+                # القنوات الخاصة: رابط c/ID (قد لا يعمل دائمًا)
+                channel_link = f"[{channel_name}](https://t.me/c/{channel_id}/1)"
             if is_owner:
                 hico.append(channel_link)
             if is_admin:

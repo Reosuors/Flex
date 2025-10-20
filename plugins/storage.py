@@ -87,7 +87,7 @@ async def forward_private_to_storage(event):
         await client.forward_messages(group_id, event.message)
         # Optional: add simple meta
         sender = await event.get_sender()
-        meta = f"#التــاكــات\n\n⌔┊المستخدم : <code>{sender.first_name}</code>\n⌔┊الرسالة : {event.message.message}"
+        meta = f"#التــاكــات\n\n⌔┊المستخدم : <code>{sender.first_name}</code>\n⌔┊الرسالة : {(event.message.message or '')}"
         await client.send_message(group_id, meta, parse_mode="html", link_preview=False)
 
 
