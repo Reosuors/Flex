@@ -21,7 +21,12 @@ async def start_repeating_process(event):
         custom_text = event.pattern_match.group(3)
 
         if seconds < 40:
-            await event.reply("**⎙ يجب أن يكون الوقت المحدد لا يقل عن 40 ثانية.**")
+            try:
+                from plugins.lang import get_lang, t
+                lang = get_lang(getattr(event.message, "id", 0))
+                await event.reply(t("timers_need_40s", lang))
+            except Exception:
+                await event.reply("**⎙ يجب أن يكون الوقت المحدد لا يقل عن 40 ثانية.**")
             return
 
         process_images_dir = None
@@ -49,7 +54,12 @@ async def start_repeating_process(event):
                         media_files.append(file_path)
 
             if not media_files and not custom_text:
-                await event.reply("**⎙ يجب تحديد نص مخصص أو الرد على صورة.**")
+                try:
+                    from plugins.lang import get_lang, t
+                    lang = get_lang(getattr(event.message, "id", 0))
+                    await event.reply(t("timers_need_text_or_media", lang))
+                except Exception:
+                    await event.reply("**⎙ يجب تحديد نص مخصص أو الرد على صورة.**")
                 return
 
         async def task():
@@ -72,7 +82,12 @@ async def start_repeating_process(event):
         active_publishing_tasks[event.chat_id].append((t, process_images_dir))
 
         await asyncio.sleep(2)
-        confirmation_message = await event.reply(f"سيتم إرسال الرسالة كل {seconds} ثانية لـ {repeat_count} مرات.")
+        try:
+            from plugins.lang import get_lang, t
+            lang = get_lang(getattr(event.message, "id", 0))
+            confirmation_message = await event.reply(t("timers_started", lang, seconds=seconds, repeat=repeat_count))
+        except Exception:
+            confirmation_message = await event.reply(f"سيتم إرسال الرسالة كل {seconds} ثانية لـ {repeat_count} مرات.")
 
         await asyncio.sleep(1)
         await event.delete()
@@ -93,7 +108,12 @@ async def stop_sending(event):
                     shutil.rmtree(process_images_dir)
             del active_publishing_tasks[event.chat_id]
 
-            reply = await event.reply("   ‌‎✓ تم إيقاف جميع عمليات النشر المفعله   ‌‎⎙.")
+            try:
+                from plugins.lang import get_lang, t
+                lang = get_lang(getattr(event.message, "id", 0))
+                reply = await event.reply(t("timers_stopped", lang))
+            except Exception:
+                reply = await event.reply("   ‌‎✓ تم إيقاف جميع عمليات النشر المفعله   ‌‎⎙.")
             await asyncio.sleep(1)
             await event.delete()
             await asyncio.sleep(3)
@@ -101,4 +121,9 @@ async def stop_sending(event):
         else:
             await event.reply("   ‌‎⎙ لا توجد عمليات نشر فعّالة لإيقافها.")
     except Exception as e:
-        await event.reply(f"⎙ حدث خطأ: {e}")
+        try:
+            from plugins.lang import get_lang, t
+            lang = get_lang(getattr(event.message, "id", 0))
+            await event.reply(t("error_generic", lang, err=str(e)))
+        except Exception:
+            await event.reply(f"⎙ حدث خطأ: {e}")

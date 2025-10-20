@@ -31,9 +31,14 @@ async def youtube_search(event):
             if data.get('items'):
                 video_id = data['items'][0]['id']['videoId']
                 video_url = f"https://www.youtube.com/watch?v={video_id}"
-                await event.reply(f"📹 هنا رابط الفيديو الذي تم العثور عليه:\n{video_url}")
+                await event.reply(f"📹 هنا رابط الفيديو:\n{video_url}")
             else:
-                await event.reply("⎙ لم يتم العثور على فيديو يتطابق مع العنوان المطلوب.")
+                try:
+                    from plugins.lang import get_lang, t
+                    lang = get_lang(getattr(event.message, "id", 0))
+                    await event.reply(t("yt_not_found", lang))
+                except Exception:
+                    await event.reply("⎙ لم يتم العثور على فيديو يتطابق مع العنوان المطلوب.")
 
 
 # Sticker creation via @Stickers (simplified, one-shot pack publish)
@@ -141,7 +146,12 @@ async def tiktok_dl(event):
                 data = await resp.json()
                 video_link = data.get("video_no_watermark")
                 if not video_link:
-                    await status.edit("الرابط غير صحيح تأكد منه!")
+                    try:
+                        from plugins.lang import get_lang, t
+                        lang = get_lang(getattr(event.message, "id", 0))
+                        await status.edit(t("tiktok_bad_link", lang))
+                    except Exception:
+                        await status.edit("الرابط غير صحيح تأكد منه!")
                     return
                 async with session.get(video_link) as v:
                     if v.status == 200:
@@ -160,6 +170,16 @@ async def tiktok_dl(event):
                         os.rmdir(directory)
                         await status.delete()
                     else:
-                        await status.edit("⎙ فشل تحميل الفيديو")
+                        try:
+                            from plugins.lang import get_lang, t
+                            lang = get_lang(getattr(event.message, "id", 0))
+                            await status.edit(t("tiktok_failed", lang))
+                        except Exception:
+                            await status.edit("⎙ فشل تحميل الفيديو")
     except Exception as er:
-        await status.edit(f"حدث خطأ: {er}")
+        try:
+            from plugins.lang import get_lang, t
+            lang = get_lang(getattr(event.message, "id", 0))
+            await status.edit(t("error_generic", lang, err=str(er)))
+        except Exception:
+            await status.edit(f"حدث خطأ: {er}")

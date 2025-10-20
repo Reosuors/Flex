@@ -24,7 +24,12 @@ except FileNotFoundError:
 async def enable_afk(event):
     global afk_mode
     afk_mode = True
-    await event.edit("تم تشغيل الرد التلقائي.")
+    try:
+        from plugins.lang import get_lang, t
+        lang = get_lang(getattr(event.message, "id", 0))
+        await event.edit(t("afk_enabled", lang))
+    except Exception:
+        await event.edit("تم تشغيل الرد التلقائي.")
     await asyncio.sleep(2)
     await event.delete()
 
@@ -33,7 +38,12 @@ async def enable_afk(event):
 async def enable_custom_replies(event):
     global custom_replies_enabled
     custom_replies_enabled = True
-    await event.edit("تم تشغيل الردود المخصصة.")
+    try:
+        from plugins.lang import get_lang, t
+        lang = get_lang(getattr(event.message, "id", 0))
+        await event.edit(t("custom_enabled", lang))
+    except Exception:
+        await event.edit("تم تشغيل الردود المخصصة.")
     await asyncio.sleep(2)
     await event.delete()
 
@@ -43,7 +53,12 @@ async def disable_replies(event):
     global afk_mode, custom_replies_enabled
     afk_mode = False
     custom_replies_enabled = False
-    await event.edit("تم تعطيل الرد التلقائي والردود المخصصة.")
+    try:
+        from plugins.lang import get_lang, t
+        lang = get_lang(getattr(event.message, "id", 0))
+        await event.edit(t("afk_disabled", lang))
+    except Exception:
+        await event.edit("تم تعطيل الرد التلقائي والردود المخصصة.")
     await asyncio.sleep(2)
     await event.delete()
 
