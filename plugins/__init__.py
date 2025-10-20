@@ -20,6 +20,7 @@ def load_all():
         "plugins.hunter",
         "plugins.monitor",
         "plugins.admin_tools",
+        "plugins.help",
     ]
     for module in base:
         importlib.import_module(module)
