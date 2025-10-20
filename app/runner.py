@@ -1,6 +1,7 @@
 import asyncio
 from core.client import client
 from core.bot_client import bot  # optional bot
+from core.config import BOT_TOKEN
 
 async def run():
     """
@@ -14,8 +15,8 @@ async def run():
     tasks.append(client.run_until_disconnected())
 
     # Start bot client if configured
-    if bot is not None:
-        await bot.start(bot_token=True)  # start with bot token already bound in core.bot_client
+    if bot is not None and BOT_TOKEN:
+        await bot.start(bot_token=BOT_TOKEN)
         print("[runner] Bot client started.")
         tasks.append(bot.run_until_disconnected())
     else:
