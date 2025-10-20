@@ -1,5 +1,6 @@
 from telethon import events, Button
 from core.client import client
+from core.bot_client import bot
 
 # تصميم مميز لقائمة الأوامر مع تقسيمات واضحة وزخرفة بسيطة
 HEADER = (
@@ -195,46 +196,57 @@ async def show_commands(event):
 # قائمة المساعدة التفاعلية
 @client.on(events.NewMessage(outgoing=True, pattern=r"\.(?:المساعدة|مساعدة)$"))
 async def show_help_menu(event):
-    await event.edit(build_menu_text(), buttons=build_menu_buttons())
-
-@client.on(events.CallbackQuery)
-async def help_callback(event):
-    data = event.data or b""
-    if not data.startswith(b"help:"):
-        return
-    parts = data.decode().split(":")
-    # parts could be ["help", "MENU"] | ["help", "ALL"] | ["help", "idx", "N"] | ["help", "<title>"]
-    if len(parts) == 2 and parts[1] in {"MENU", "ALL"}:
-        key = parts[1]
-        if key == "MENU":
-            await event.edit(build_menu_text(), buttons=build_menu_buttons())
-        elif key == "ALL":
-            await event.edit("جارٍ عرض جميع الأقسام...")
-            text = build_help_text()
-            await client.send_message(event.chat_id, text)
-            await event.answer("تم الإرسال.")
-        return
-    if len(parts) == 3 and parts[1] == "idx":
-        try:
-            index = int(parts[2])
-        except ValueError:
-            await event.answer("فهرس غير صالح.", alert=True)
-            return
-        if not (0 <= index < len(SECTIONS)):
-            await event.answer("خارج النطاق.", alert=True)
-            return
-        title = SECTIONS[index]
-        text = build_section_text(title)
-        await event.edit(text, buttons=build_section_buttons_by_index(index))
-        await event.answer(f"تم فتح قسم: {title}")
-        return
-    # دعم قديم: العنوان مباشرةً
-    key = parts[1]
-    if key in COMMANDS:
-        title = key
-        index = SECTIONS.index(title)
-        text = build_section_text(title)
-        await event.edit(text, buttons=build_section_buttons_by_index(index))
-        await event.answer(f"تم فتح قسم: {title}")
+    # إذا كان هناك بوت مساعد؛ استخدمه لإرسال الأزرار (حسابات المستخدم لا تدعم الأزرار على الأغلب)
+    if bot is not None:
+        await bot.send_message(event.chat_id, build_menu_text(), buttons=build_menu_buttons())
+        await event.delete()
     else:
-        await event.answer("قسم غير معروف.", alert=True)
+        await event.edit(build_menu_text())
+        await event.respond("BOT_TOKEN غير مضبوط؛ سيتم عرض القائمة بدون أزرار.")
+
+# معالجات الأزرار عبر البوت
+if bot is not None:
+    @bot.on(events.CallbackQuery)
+    async def help_callback(event):
+        data = event.data or b""
+        if not data.startswith(b"help:"):
+            return
+        parts = data.decode().split(":")
+        # parts could be ["help", "MENU"] | ["help", "ALL"] | ["help", "idx", "N"] | ["help", "<title>"]
+        if len(parts) == 2 and parts[1] in {"MENU", "ALL"}:
+            key = parts[1]
+            if key == "MENU":
+                await event.edit(build_menu_text(), buttons=build_menu_buttons())
+            elif key == "ALL":
+                await event.edit("جارٍ عرض جميع الأقسام...")
+                text = build_help_text()
+                await bot.send_message(event.chat_id, text)
+                await event.answer("تم الإرسال.")
+            return
+        if len(parts) == 3 and parts[1] == "idx":
+            try:
+                index = int(parts[2])
+            except ValueError:
+                await event.answer("فهرس غير صالح.", alert=True)
+                return
+            if not (0 <= index < len(SECTIONS)):
+                await event.answer("خارج النطاق.", alert=True)
+                return
+            title = SECTIONS[index]
+            text = build_section_text(title)
+            await event.edit(text, buttons=build_section_buttons_by_index(index))
+            await event.answer(f"تم فتح قسم: {title}")
+            return
+        # دعم قديم: العنوان مباشرةً
+        key = parts[1]
+        if key in COMMANDS:
+            title = key
+            index = SECTIONS.index(title)
+            text = build_section_text(title)
+            await event.edit(text, buttons=build_section_buttons_by_index(index))
+            await event.answer(f"تم فتح قسم: {title}")
+        else:
+            await event.answer("قسم غير معروف.", alert=True)
+else:
+    # Fallback: لو لم يوجد بوت، لا داعي لالتقاط CallbackQuery
+    pass
