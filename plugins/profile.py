@@ -22,8 +22,8 @@ else:
 
 
 def superscript_time(time_str):
-    # visually similar to original
-    trans = str.maketrans('0123456789', '𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟭𝟴𝟵')
+    # visually similar to original, fix missing '7'
+    trans = str.maketrans('0123456789', '𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵')
     return time_str.translate(trans)
 
 

@@ -35,19 +35,20 @@ async def _ensure_storage_group(event):
             os.remove(GROUP_ID_FILE)
 
     # Create new megagroup
-    group = await client(CreateChannelRequest(
+    result = await client(CreateChannelRequest(
         title=STORAGE_GROUP_TITLE,
         about=STORAGE_GROUP_BIO,
         megagroup=True
     ))
-    group_id = group.chats[0].id
+    channel = result.chats[0]
+    group_id = channel.id
 
     # Set photo from repo root if exists
     if os.path.exists(STORAGE_PHOTO_NAME):
         try:
             uploaded_photo = await client.upload_file(STORAGE_PHOTO_NAME)
             await client(EditPhotoRequest(
-                channel=group_id,
+                channel=channel,  # pass the channel entity, not the integer id
                 photo=InputChatUploadedPhoto(
                     file=uploaded_photo,
                     video=None,
