@@ -6,6 +6,8 @@ from core.client import client
 shortcuts = {}
 MEMES_DB = {}
 _MEMES_FILE = "memes_db.json"
+_SHORTCUTS_FILE = "shortcuts.json"
+_MEMES_DIR = "memes"
 
 
 def _load_memes():
@@ -28,8 +30,37 @@ def _save_memes():
         pass
 
 
+def _load_shortcuts():
+    global shortcuts
+    if os.path.exists(_SHORTCUTS_FILE) and os.stat(_SHORTCUTS_FILE).st_size > 0:
+        try:
+            with open(_SHORTCUTS_FILE, "r", encoding="utf-8") as f:
+                shortcuts = json.load(f)
+        except Exception:
+            shortcuts = {}
+    else:
+        shortcuts = {}
+
+
+def _save_shortcuts():
+    try:
+        with open(_SHORTCUTS_FILE, "w", encoding="utf-8") as f:
+            json.dump(shortcuts, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def _ensure_memes_dir():
+    try:
+        os.makedirs(_MEMES_DIR, exist_ok=True)
+    except Exception:
+        pass
+
+
 # initialize on import
 _load_memes()
+_load_shortcuts()
+_ensure_memes_dir()
 
 
 @client.on(events.NewMessage(pattern=r"^\.اختصار \+ (\S+)$"))
@@ -38,6 +69,7 @@ async def add_shortcut(event):
     if event.reply_to_msg_id:
         reply_message = await event.get_reply_message()
         shortcuts[key] = reply_message.text
+        _save_shortcuts()
         await event.edit(f"**⎙ تم حفظ الاختصار ({key}) ⇨ {reply_message.text}**")
     else:
         await event.edit("**⎙ يجب الرد على رسالة لاختصارها.**")
@@ -55,6 +87,7 @@ async def delete_shortcut(event):
     key = event.pattern_match.group(1)
     if key in shortcuts:
         del shortcuts[key]
+        _save_shortcuts()
         await event.edit(f"**⎙ تم حذف الاختصار ({key})**")
     else:
         await event.edit(f"**⎙ لا يوجد اختصار بهذا الاسم ({key})**")
@@ -71,6 +104,7 @@ async def list_shortcuts(event):
 
 @client.on(events.NewMessage(pattern=r"^\.ميمز (\S+) (.+)"))
 async def add_meme(event):
+    # إضافة بواسطة مفتاح + رابط
     key = event.pattern_match.group(1)
     url = event.pattern_match.group(2)
     MEMES_DB[key] = url
@@ -78,7 +112,31 @@ async def add_meme(event):
     await event.edit(f"**᯽︙ تم إضافة البصمة '{key}' بنجاح ✓**")
 
 
-# إصلاح نمط الجلب المكسور وإضافة أمر واضح
+@client.on(events.NewMessage(pattern=r"^\.ميمز حفظ (\S+)$"))
+async def add_meme_from_reply(event):
+    # إضافة بواسطة الرد على وسائط
+    key = event.pattern_match.group(1)
+    if not event.reply_to_msg_id:
+        await event.edit("**⎙ يجب الرد على صورة/فيديو لحفظها كبصمة.**")
+        return
+    reply_message = await event.get_reply_message()
+    if not reply_message.media:
+        await event.edit("**⎙ الرسالة لا تحتوي على وسائط.**")
+        return
+    try:
+        _ensure_memes_dir()
+        # سمّي الملف بشكل قابل للتفريق
+        file_path = os.path.join(_MEMES_DIR, f"{key}_{reply_message.id}")
+        saved = await reply_message.download_media(file=file_path)
+        # Telethon قد يضيف الامتداد تلقائيًا، نستخدم المسار المرجع النهائي
+        MEMES_DB[key] = saved
+        _save_memes()
+        await event.edit(f"**᯽︙ تم حفظ البصمة '{key}' من الوسائط ✓**")
+    except Exception as e:
+        await event.edit(f"**❌ فشل حفظ الوسائط: {e}**")
+
+
+# إصلاح نمط الجلب وإضافة أمر واضح
 @client.on(events.NewMessage(pattern=r"^\.ميمز (جلب|عرض) (\S+)$"))
 async def get_meme(event):
     action = event.pattern_match.group(1)
@@ -87,10 +145,14 @@ async def get_meme(event):
     if not url:
         await event.edit(f"**❌ لم يتم العثور على بصمة بهذا الاسم '{key}'**")
         return
-    # اعرض الرابط أو أرسل الملف بحسب المحتوى
-    if url.lower().endswith((".jpg", ".jpeg", ".png", ".gif", ".mp4", ".webm", ".webp")):
+    # إذا كان رابط/مسار لوسائط — أرسل كملف
+    lower = url.lower()
+    if lower.endswith((".jpg", ".jpeg", ".png", ".gif", ".mp4", ".webm", ".webp")) or os.path.exists(url):
         await event.delete()
-        await client.send_file(event.chat_id, url, caption=f"᯽︙ {key}")
+        try:
+            await client.send_file(event.chat_id, url, caption=f"᯽︙ {key}")
+        except Exception as e:
+            await client.send_message(event.chat_id, f"**❌ فشل إرسال الملف:** {e}")
     else:
         await event.edit(f"᯽︙ {key} ⇨ {url}")
 
@@ -99,8 +161,9 @@ async def get_meme(event):
 async def list_memes(event):
     if MEMES_DB:
         message = "**᯽︙ قائمة تخزين أوامر الميمز:**\n"
-        for key in MEMES_DB:
-            message += f"- البصمة: `{key}`\n"
+        for key, value in MEMES_DB.items():
+            kind = "ملف" if os.path.exists(value) else "رابط"
+            message += f"- البصمة: `{key}` ({kind})\n"
     else:
         message = "**᯽︙ لا توجد بصمات ميمز مخزنة حتى الآن**"
     await event.edit(message)
@@ -110,6 +173,13 @@ async def list_memes(event):
 async def delete_meme(event):
     key = event.pattern_match.group(1).strip()
     if key in MEMES_DB:
+        val = MEMES_DB[key]
+        # إن كان ملفًا محليًا احذفه أيضًا
+        if os.path.exists(val):
+            try:
+                os.remove(val)
+            except Exception:
+                pass
         del MEMES_DB[key]
         _save_memes()
         await event.edit(f"**᯽︙ تم حذف البصمة '{key}' بنجاح ✓**")
@@ -119,6 +189,13 @@ async def delete_meme(event):
 
 @client.on(events.NewMessage(pattern=r"^\.ازالة_البصمات$"))
 async def delete_all_memes(event):
+    # حذف جميع الملفات المحلية إن وجدت
+    for key, val in list(MEMES_DB.items()):
+        if os.path.exists(val):
+            try:
+                os.remove(val)
+            except Exception:
+                pass
     MEMES_DB.clear()
     _save_memes()
     await event.edit("**᯽︙ تم حذف جميع بصمات الميمز من القائمة ✓**")
