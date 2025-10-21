@@ -178,6 +178,7 @@ COMMANDS_EN = {
         (".translate <lang> [text/reply]", "Smart translation via Google."),
         (".detect_lang [text/reply]", "Detect text language automatically."),
         (".summarize [sentences] (reply)", "Quick summary to N sentences."),
+        (".anime <description>", "Suggest anime title from a brief description."),
     ],
     "Hunting (Usernames)": [
         (".hunt <pattern>", "Start username hunting according to pattern."),
