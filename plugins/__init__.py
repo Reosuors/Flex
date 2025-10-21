@@ -23,6 +23,8 @@ def load_all():
         "plugins.help",
         "plugins.inline_help",
         "plugins.ai_tools",
+        "plugins.temp_mail",
+        "plugins.fake_interactions",
         "plugins.command_aliases",
         # Removed limits by request:
         # "plugins.member_limit",

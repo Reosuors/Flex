@@ -138,6 +138,17 @@ ALIASES = {
     "auto_badge": "شارة_تلقائية",
     "setup_activity_badge": "إعداد_شارة_نشاط",
     "anime": "انمي",
+
+    # Fake interactions
+    "typing": "يكتب",
+    "upload_photo": "يرفع_صورة",
+    "upload_file": "يرفع_ملف",
+    "upload_video": "يرفع_فيديو",
+    "upload_audio": "يرفع_صوت",
+    "record_video": "يسجل_فيديو",
+    "record_audio": "يسجل_صوت",
+    "choose_sticker": "اختيار_ملصق",
+    "game_play": "يلعب",
 }
 
 # Do not rewrite these (they drive bilingual help system)
