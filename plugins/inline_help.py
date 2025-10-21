@@ -240,6 +240,7 @@ COMMANDS_EN = {
         (".restrict [reply/ID/@]", "Restrict user from sending messages."),
         (".unban [reply/ID/@]", "Unban user."),
         (".unrestrict [reply/ID/@]", "Unrestrict user."),
+        (".admin_log", "Show last 25 admin actions with reasons."),
     ],
 }
 

@@ -6,16 +6,20 @@ ALIASES = {
     # Statistics
     "stats": "احصائياتي",
     "meinfo": "معلوماتي",
+    "dashboard": "لوحة",
 
     # Storage
     "enable_storage": "تفعيل التخزين",
     "disable_storage": "تعطيل التخزين",
+    "set_archive": "تعيين_ارشيف",
+    "archive": "أرشفة",
 
     # Auto Replies
     "add_reply": "اضف رد",
     "replies": "الردود",
     "enable_here": "تفعيل هنا",
     "disable_here": "تعطيل هنا",
+    "set_reply_priority": "أولوية الرد",
 
     # AFK & Custom Replies
     "afk_on": "تشغيل الرد",
@@ -26,6 +30,8 @@ ALIASES = {
     "del_reply": "حذف رد",
     "allow": "سماح",
     "disallow": "الغاء السماح",
+    "schedule_afk": "جدولة_الغياب",
+    "unschedule_afk": "الغاء_الجدولة",
 
     # Games
     "dart": "سهم",
@@ -43,6 +49,7 @@ ALIASES = {
     "sticker": "ملصق",
     "sticker_info": "معلومات الملصق",
     "tiktok": "تك",
+    "compress_image": "ضغط_صوره",
 
     # AI
     "translate": "ترجم",
@@ -58,6 +65,7 @@ ALIASES = {
     # Monitoring
     "watch": "مراقبة",
     "unwatch": "ايقاف_المراقبة",
+    "weekly_report": "تقرير_اسبوعي",
 
     # Profile
     "time_name_on": "تفعيل الاسم الوقتي",
@@ -65,6 +73,8 @@ ALIASES = {
     "name": "الاسم",
     "impersonate": "انتحال",
     "restore": "ارجاع",
+    "badge": "شارة",
+    "clear_badge": "ازالة_شارة",
 
     # Private Protection & Warnings
     "private_protect": "حماية الخاص",
@@ -77,6 +87,9 @@ ALIASES = {
     "set_max_warnings": "عدد التحذيرات",
     "banned_list": "المحظورين",
     "clear_banned": "مسح المحظورين",
+    "add_bad_word": "اضافة_كلمة_سيئة",
+    "remove_bad_word": "ازالة_كلمة_سيئة",
+    "list_bad_words": "قائمة_الكلمات_السيئة",
 
     # Shortcuts & Memes
     "shortcut": "اختصار",
@@ -89,12 +102,18 @@ ALIASES = {
     "memes_list": "قائمة الميمز",
     "remove": "ازالة",
     "memes_clear": "ازالة_البصمات",
+    "tag_meme": "وسم_ميمز",
+    "search_memes": "بحث_ميمز",
 
     # Auto Publishing
     "repeat": "تكرار",
     "rep": "تك",
     "publish": "نشر",
     "stop_auto_publish": "ايقاف النشر التلقائي",
+    "save_publish_template": "حفظ_قالب_نشر",
+    "list_publish_templates": "قوالب_النشر",
+    "delete_publish_template": "حذف_قالب_نشر",
+    "publish_with_template": "نشر_بقالب",
 
     # Channels & Groups Tools
     "list_all_channels": "قائمه جميع القنوات",
@@ -104,6 +123,7 @@ ALIASES = {
     "list_admin_groups": "قائمه مجموعات اديرها",
     "list_my_groups": "قائمه كروباتي",
     "inspect_group": "كشف المجموعة",
+    "my_rights": "صلاحياتي",
 
     # Administration
     "ban": "حظر",
@@ -111,6 +131,7 @@ ALIASES = {
     "restrict": "تقييد",
     "unban": "الغاء الحظر",
     "unrestrict": "الغاء التقييد",
+    "admin_log": "سجل_إداري",
 }
 
 # Do not rewrite these (they drive bilingual help system)
