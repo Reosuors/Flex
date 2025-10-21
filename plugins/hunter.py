@@ -32,7 +32,9 @@ def generate_username(pattern):
 
     # Username must start with a letter
     if not username or not username[0].isalpha():
-        username = random.choice("abcdefghijklmnopqrstuvwxyz") + username[1:]
+        head = random.choice("abcdefghijklmnopqrstuvwxyz")
+        tail = username[1:] if len(username) > 1 else ""
+        username = head + tail
 
     # Telegram username rules: 5-32 chars, letters/digits/underscore
     username = re.sub(r"[^a-z0-9_]", "", username)
@@ -41,6 +43,22 @@ def generate_username(pattern):
     elif len(username) > 32:
         username = username[:32]
     return username
+
+def valid_candidate(u):
+    # disallow 3+ consecutive identical chars
+    if re.search(r"(.)\1\1", u):
+        return False
+    # require at least one letter and one digit if length >= 6
+    if len(u) >= 6:
+        if not re.search(r"[a-z]", u) or not re.search(r"[0-9]", u):
+            return False
+    # avoid ending with underscore
+    if u.endswith("_"):
+        return False
+    # avoid double underscores
+    if "__" in u:
+        return False
+    return True
 
 def get_pattern_by_type(hunt_type):
     patterns = {
@@ -60,9 +78,9 @@ def get_pattern_by_type(hunt_type):
         "شبه رباعي2": "H_B_B_B",
         "شبه رباعي3": "H_BB_H",
         "شبه رباعي4": "H_BB_B",
-        "خماسي حرفين1": "HHH_B",   # كان فيها 'R' غير صالح كقيمة خاصة، استبدلناه بنمط صالح
+        "خماسي حرفين1": "HHH_B",
         "خماسي حرفين2": "H4BBB",
-        "خماسي حرفين3": "HBBB_",   # تكييف بسيط ليبقى صالحًا
+        "خماسي حرفين3": "HBBB_",
         "سداسي_حرفين1": "HBHHHB",
         "سداسي_حرفين2": "HHHHBB",
         "سداسي_حرفين3": "HHHBBH",
@@ -143,6 +161,10 @@ async def start_hunting(event):
 
     while hunting_active:
         username = generate_username(hunting_pattern)
+        # apply validity filters
+        if not valid_candidate(username):
+            await asyncio.sleep(0.1)
+            continue
         hunting_attempts += 1
         try:
             result = await client(functions.account.CheckUsernameRequest(username))
