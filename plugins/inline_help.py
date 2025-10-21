@@ -167,6 +167,17 @@ COMMANDS_EN = {
         (".dare", "Generate a light dare."),
         (".truth", "Generate a respectful truth question."),
     ],
+    "Fake Interactions": [
+        (".typing [seconds]", "Show typing without sending."),
+        (".upload_photo [seconds]", "Show uploading a photo."),
+        (".upload_file [seconds]", "Show uploading a file."),
+        (".upload_video [seconds]", "Show uploading a video."),
+        (".upload_audio [seconds]", "Show uploading an audio."),
+        (".record_video [seconds]", "Show recording a video."),
+        (".record_audio [seconds]", "Show recording an audio."),
+        (".choose_sticker [seconds]", "Show choosing a sticker."),
+        (".game_play [seconds]", "Show playing a game."),
+    ],
     "Media & Tools": [
         (".youtube <query>", "Fetch first matching video from YouTube."),
         (".sticker", "Create a sticker from an image/sticker (reply to media)."),
