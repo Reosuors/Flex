@@ -20,6 +20,15 @@ def load_all():
         "plugins.hunter",
         "plugins.monitor",
         "plugins.admin_tools",
+        "plugins.help",
+        "plugins.inline_help",
+        "plugins.ai_tools",
+        "plugins.temp_mail",
+        "plugins.fake_interactions",
+        "plugins.command_aliases",
+        # Removed limits by request:
+        # "plugins.member_limit",
+        # "plugins.command_limit",
     ]
     for module in base:
         importlib.import_module(module)

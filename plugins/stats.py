@@ -94,3 +94,38 @@ async def stats_details(event):
     response += f"**ـUnread Mentions:** {unread_mentions} \n\n"
     response += f"📌**- الوقـت المستغـرق 📟 :** {stop_time:.02f} **ثـانيـه**"
     await cat.edit(response)
+
+
+# لوحة سريعة برسوم ASCII
+def bar(label, count, scale=1):
+    blocks = int(count * scale)
+    return f"{label:12} | {'█' * blocks} {count}"
+
+@client.on(events.NewMessage(outgoing=True, pattern=r"\.لوحة$"))
+async def quick_dashboard(event):
+    dialogs = await client.get_dialogs(limit=None, ignore_migrated=True)
+    u = g = c = bc = b = 0
+    for d in dialogs:
+        e = d.entity
+        if isinstance(e, User):
+            if e.bot: b += 1
+            else: u += 1
+        elif isinstance(e, Chat):
+            g += 1
+        elif isinstance(e, Channel):
+            if e.broadcast: bc += 1
+            else: c += 1
+    total = max(u+g+c+bc+b, 1)
+    scale = 20 / max(max(u,g,c,bc,b), 1)
+    dashboard = [
+        "╔════════════════════════════╗",
+        "║ لوحة سريعة • FLEX         ║",
+        "╚════════════════════════════╝",
+        bar("Users", u, scale),
+        bar("Groups", g, scale),
+        bar("Megagroups", c, scale),
+        bar("Channels", bc, scale),
+        bar("Bots", b, scale),
+        f"Total: {total}"
+    ]
+    await event.edit("\n".join(dashboard))

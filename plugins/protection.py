@@ -73,6 +73,35 @@ async def toggle_private_protection(event):
     await event.edit(f"**⎙ تم تغيير وضع حماية الخاص إلى:** {status}")
 
 
+@client.on(events.NewMessage(pattern=r"^\.اضافة_كلمة_سيئة (.+)$"))
+async def add_bad_word(event):
+    word = event.pattern_match.group(1).strip().lower()
+    if word and word not in protection_data["banned_words"]:
+        protection_data["banned_words"].append(word)
+        save_protection()
+        await event.edit(f"✓ تم إضافة الكلمة إلى القائمة السوداء: {word}")
+    else:
+        await event.edit("الكلمة موجودة بالفعل أو غير صالحة.")
+
+@client.on(events.NewMessage(pattern=r"^\.ازالة_كلمة_سيئة (.+)$"))
+async def remove_bad_word(event):
+    word = event.pattern_match.group(1).strip().lower()
+    if word in protection_data["banned_words"]:
+        protection_data["banned_words"].remove(word)
+        save_protection()
+        await event.edit(f"✓ تم إزالة الكلمة: {word}")
+    else:
+        await event.edit("الكلمة غير موجودة في القائمة.")
+
+@client.on(events.NewMessage(pattern=r"^\.قائمة_الكلمات_السيئة$"))
+async def list_bad_words(event):
+    words = protection_data.get("banned_words", [])
+    if not words:
+        await event.edit("لا توجد كلمات سيئة محددة.")
+        return
+    await event.edit("القائمة السوداء:\n- " + "\n- ".join(words))
+
+
 @client.on(events.NewMessage)
 async def delete_bad_words(event):
     if not protection_data["enabled"]:

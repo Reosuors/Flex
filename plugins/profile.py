@@ -2,7 +2,8 @@ import re
 import os
 import asyncio
 import pickle
-from datetime import datetime
+import json
+from datetime import datetime, date
 import pytz
 from telethon import events
 from telethon.tl.functions.account import UpdateProfileRequest
@@ -20,17 +21,14 @@ if os.path.exists(time_update_status_file):
 else:
     time_update_status = {'enabled': False}
 
-
 def superscript_time(time_str):
-    # visually similar to original
-    trans = str.maketrans('0123456789', '𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟭𝟴𝟵')
+    # visually similar to original, fix missing '7'
+    trans = str.maketrans('0123456789', '𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵')
     return time_str.translate(trans)
-
 
 async def get_account_name():
     me = await client.get_me()
     return re.sub(r' - \d{2}:\d{2}', '', me.first_name or '')
-
 
 @client.on(events.NewMessage(from_users='me', pattern=r'\.تفعيل الاسم الوقتي'))
 async def enable_time_update(event):
@@ -42,7 +40,6 @@ async def enable_time_update(event):
     reply = await event.reply("✓ تم تفعيل الاسم مع الوقت   ‌‎⎙.")
     await asyncio.sleep(1)
     await reply.delete()
-
 
 @client.on(events.NewMessage(from_users='me', pattern=r'\.تعطيل الاسم الوقتي'))
 async def disable_time_update(event):
@@ -63,7 +60,6 @@ async def disable_time_update(event):
         reply = await event.reply("⎙ لم يتم تعيين اسم الحساب.")
     await asyncio.sleep(1)
     await reply.delete()
-
 
 @client.on(events.NewMessage(from_users='me', pattern=r'\.الاسم'))
 async def set_account_name(event):
@@ -87,10 +83,8 @@ async def set_account_name(event):
     except Exception as e:
         await event.reply(f"⎙ حدث خطأ أثناء تغيير الاسم: {e}")
 
-
 # Impersonate / restore
 profile_saved = False
-
 
 async def save_my_profile():
     user = await client.get_me()
@@ -105,7 +99,6 @@ async def save_my_profile():
 
     if user.photo:
         await client.download_profile_photo(user.id, file="imagee/my_profile.jpg")
-
 
 @client.on(events.NewMessage(from_users='me', pattern=r'\.انتحال'))
 async def handle_impersonate(event):
@@ -141,7 +134,6 @@ async def handle_impersonate(event):
             await event.reply("⎙ لا يملك المستخدم صورة.")
     await event.delete()
 
-
 @client.on(events.NewMessage(from_users='me', pattern=r'\.ارجاع'))
 async def handle_restore(event):
     try:
@@ -166,3 +158,115 @@ async def handle_restore(event):
     except Exception as e:
         await event.reply(f"⎙ حدث خطأ أثناء استرجاع الحساب: {e}")
     await event.delete()
+
+# الشارات المؤقتة بجانب الاسم
+BADGE_FILE = "profile_badge.txt"
+
+def load_badge():
+    if os.path.exists(BADGE_FILE):
+        try:
+            with open(BADGE_FILE, "r", encoding="utf-8") as f:
+                return f.read().strip()
+        except Exception:
+            return ""
+    return ""
+
+def save_badge(badge):
+    try:
+        with open(BADGE_FILE, "w", encoding="utf-8") as f:
+            f.write(badge or "")
+    except Exception:
+        pass
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.شارة (\S+)))
+async def set_badge(event):
+    badge = event.pattern_match.group(1)
+    save_badge(badge)
+    me = await client.get_me()
+    base_name = re.sub(r' - \d{2}:\d{2}', '', me.first_name or '')
+    new_name = f"{badge} {base_name}"
+    try:
+        await client(UpdateProfileRequest(first_name=new_name))
+        await event.edit(f"✓ تم إضافة الشارة: {badge}")
+    except Exception as e:
+        await event.edit(f"تعذر إضافة الشارة: {e}")
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.ازالة_شارة))
+async def clear_badge(event):
+    save_badge("")
+    me = await client.get_me()
+    base_name = re.sub(r' - \d{2}:\d{2}', '', me.first_name or '')
+    try:
+        await client(UpdateProfileRequest(first_name=base_name))
+        await event.edit("✓ تم إزالة الشارة.")
+    except Exception as e:
+        await event.edit(f"تعذر إزالة الشارة: {e}")
+
+# الشارات التلقائية حسب النشاط
+AUTO_BADGE_FILE = "profile_badge_auto.json"
+auto_badge = {"enabled": False, "badge": "⭐", "threshold": 50, "count_date": "", "count": 0}
+
+def load_auto_badge():
+    global auto_badge
+    try:
+        if os.path.exists(AUTO_BADGE_FILE):
+            with open(AUTO_BADGE_FILE, "r", encoding="utf-8") as f:
+                auto_badge = json.load(f)
+    except Exception:
+        pass
+
+def save_auto_badge():
+    try:
+        with open(AUTO_BADGE_FILE, "w", encoding="utf-8") as f:
+            json.dump(auto_badge, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+load_auto_badge()
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.شارة_تلقائية (تشغيل|تعطيل)))
+async def toggle_auto_badge(event):
+    action = event.pattern_match.group(1)
+    auto_badge["enabled"] = (action == "تشغيل")
+    save_auto_badge()
+    await event.edit(f"✓ تم {'تفعيل' if auto_badge['enabled'] else 'تعطيل'} الشارات التلقائية حسب النشاط.")
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.إعداد_شارة_نشاط (\S+) (\d+)))
+async def setup_auto_badge(event):
+    badge = event.pattern_match.group(1)
+    threshold = int(event.pattern_match.group(2))
+    auto_badge["badge"] = badge
+    auto_badge["threshold"] = max(1, threshold)
+    save_auto_badge()
+    await event.edit(f"✓ تم ضبط الشارة '{badge}' عند تجاوز {auto_badge['threshold']} رسائل يوميًا.")
+
+@client.on(events.NewMessage(outgoing=True))
+async def count_activity_and_apply_badge(event):
+    # Only track for our own messages
+    if not auto_badge.get("enabled"):
+        return
+    try:
+        me = await client.get_me()
+        if event.sender_id != me.id:
+            return
+    except Exception:
+        return
+    # reset daily counter
+    today = date.today().isoformat()
+    if auto_badge.get("count_date") != today:
+        auto_badge["count_date"] = today
+        auto_badge["count"] = 0
+        save_auto_badge()
+    auto_badge["count"] += 1
+    save_auto_badge()
+    # apply badge if threshold met
+    if auto_badge["count"] == auto_badge["threshold"]:
+        current = await client.get_me()
+        base_name = re.sub(r' - \d{2}:\d{2}', '', current.first_name or '')
+        # avoid duplicate badge
+        if not base_name.startswith(auto_badge["badge"]):
+            new_name = f"{auto_badge['badge']} {base_name}"
+            try:
+                await client(UpdateProfileRequest(first_name=new_name))
+            except Exception:
+                pass

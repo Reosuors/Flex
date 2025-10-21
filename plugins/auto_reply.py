@@ -8,18 +8,17 @@ DATA_FILE = "responses.json"
 
 def _load_data():
     if not os.path.exists(DATA_FILE) or os.stat(DATA_FILE).st_size == 0:
-        return {"responses": {}, "enabled_groups": []}
+        return {"responses": {}, "enabled_groups": [], "priorities": {}}
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            if "responses" not in data:
-                data["responses"] = {}
-            if "enabled_groups" not in data:
-                data["enabled_groups"] = []
+            data.setdefault("responses", {})
+            data.setdefault("enabled_groups", [])
+            data.setdefault("priorities", {})
             return data
     except Exception as e:
         print(f"[auto_reply] load error: {e}")
-        return {"responses": {}, "enabled_groups": []}
+        return {"responses": {}, "enabled_groups": [], "priorities": {}}
 
 
 def _save_data(data):
@@ -37,17 +36,34 @@ async def add_response(event):
         key = key.strip()
         value = value.strip()
         DATA["responses"][key] = value
+        DATA["priorities"].setdefault(key, 1)
         _save_data(DATA)
-        await event.edit(f"⎙ تم إضافة الرد بنجاح:\n**{key} → {value}**")
+        await event.edit(f"⎙ تم إضافة الرد بنجاح:\n**{key} → {value}** (الأولوية: {DATA['priorities'][key]})")
     except ValueError:
         await event.edit("⎙ الصيغة غير صحيحة. استخدم: `.اضف رد + الكلمة + الرد`")
+
+
+@client.on(events.NewMessage(pattern=r"\.أولوية الرد (\S+) (\d+)"))
+async def set_priority(event):
+    key = event.pattern_match.group(1)
+    pr = int(event.pattern_match.group(2))
+    if key not in DATA["responses"]:
+        await event.edit("⎙ لا يوجد رد بهذه الكلمة.")
+        return
+    DATA["priorities"][key] = max(1, pr)
+    _save_data(DATA)
+    await event.edit(f"✓ تم تعيين أولوية الرد للكلمة '{key}' إلى {pr}.")
 
 
 @client.on(events.NewMessage(pattern=r"\.الردود"))
 async def list_responses(event):
     responses = DATA.get("responses", {})
     if responses:
-        msg = "**⎙ الردود المخزنة:**\n\n" + "\n".join([f"⎙ **{k}** → {v}" for k, v in responses.items()])
+        lines = []
+        for k, v in responses.items():
+            p = DATA["priorities"].get(k, 1)
+            lines.append(f"⎙ **{k}** (أولوية {p}) → {v}")
+        msg = "**⎙ الردود المخزنة:**\n\n" + "\n".join(lines)
     else:
         msg = "⎙ لا توجد ردود مخزنة."
     await event.reply(msg)
@@ -82,13 +98,22 @@ async def auto_reply(event):
         text = (event.raw_text or "").strip()
         if not text:
             return
-        value = DATA["responses"].get(text)
-        if value:
-            # do not reply to bots to reduce noise
-            try:
-                sender = await event.get_sender()
-                if getattr(sender, "bot", False):
-                    return
-            except Exception:
-                pass
-            await event.reply(value)
+        # pick best match by priority supporting substring triggers
+        matches = []
+        for k, v in DATA["responses"].items():
+            if k == text or (k in text and len(k) >= 2):
+                pr = DATA["priorities"].get(k, 1)
+                matches.append((pr, len(k), v))
+        if not matches:
+            return
+        # highest priority, then longest key
+        matches.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        value = matches[0][2]
+        # do not reply to bots to reduce noise
+        try:
+            sender = await event.get_sender()
+            if getattr(sender, "bot", False):
+                return
+        except Exception:
+            pass
+        await event.reply(value)
