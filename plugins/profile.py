@@ -2,7 +2,8 @@ import re
 import os
 import asyncio
 import pickle
-from datetime import datetime
+import json
+from datetime import datetime, date
 import pytz
 from telethon import events
 from telethon.tl.functions.account import UpdateProfileRequest
@@ -200,3 +201,72 @@ async def clear_badge(event):
         await event.edit("✓ تم إزالة الشارة.")
     except Exception as e:
         await event.edit(f"تعذر إزالة الشارة: {e}")
+
+# الشارات التلقائية حسب النشاط
+AUTO_BADGE_FILE = "profile_badge_auto.json"
+auto_badge = {"enabled": False, "badge": "⭐", "threshold": 50, "count_date": "", "count": 0}
+
+def load_auto_badge():
+    global auto_badge
+    try:
+        if os.path.exists(AUTO_BADGE_FILE):
+            with open(AUTO_BADGE_FILE, "r", encoding="utf-8") as f:
+                auto_badge = json.load(f)
+    except Exception:
+        pass
+
+def save_auto_badge():
+    try:
+        with open(AUTO_BADGE_FILE, "w", encoding="utf-8") as f:
+            json.dump(auto_badge, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+load_auto_badge()
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.شارة_تلقائية (تشغيل|تعطيل)))
+async def toggle_auto_badge(event):
+    action = event.pattern_match.group(1)
+    auto_badge["enabled"] = (action == "تشغيل")
+    save_auto_badge()
+    await event.edit(f"✓ تم {'تفعيل' if auto_badge['enabled'] else 'تعطيل'} الشارات التلقائية حسب النشاط.")
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.إعداد_شارة_نشاط (\S+) (\d+)))
+async def setup_auto_badge(event):
+    badge = event.pattern_match.group(1)
+    threshold = int(event.pattern_match.group(2))
+    auto_badge["badge"] = badge
+    auto_badge["threshold"] = max(1, threshold)
+    save_auto_badge()
+    await event.edit(f"✓ تم ضبط الشارة '{badge}' عند تجاوز {auto_badge['threshold']} رسائل يوميًا.")
+
+@client.on(events.NewMessage(outgoing=True))
+async def count_activity_and_apply_badge(event):
+    # Only track for our own messages
+    if not auto_badge.get("enabled"):
+        return
+    try:
+        me = await client.get_me()
+        if event.sender_id != me.id:
+            return
+    except Exception:
+        return
+    # reset daily counter
+    today = date.today().isoformat()
+    if auto_badge.get("count_date") != today:
+        auto_badge["count_date"] = today
+        auto_badge["count"] = 0
+        save_auto_badge()
+    auto_badge["count"] += 1
+    save_auto_badge()
+    # apply badge if threshold met
+    if auto_badge["count"] == auto_badge["threshold"]:
+        current = await client.get_me()
+        base_name = re.sub(r' - \d{2}:\d{2}', '', current.first_name or '')
+        # avoid duplicate badge
+        if not base_name.startswith(auto_badge["badge"]):
+            new_name = f"{auto_badge['badge']} {base_name}"
+            try:
+                await client(UpdateProfileRequest(first_name=new_name))
+            except Exception:
+                pass

@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 
 ACTIONS_FILE = "admin_actions.json"
+EXPORT_FILE = "admin_actions_export.txt"
 
 def _load_actions():
     if os.path.exists(ACTIONS_FILE) and os.stat(ACTIONS_FILE).st_size > 0:
@@ -104,5 +105,38 @@ async def show_admin_log(event):
         return
     lines = ["╔══════════════════════╗", "║ سجل إداري • FLEX     ║", "╚══════════════════════╝", ""]
     for a in admin_actions[-25:]:  # show last 25 actions
-        lines.append(f"- {a['ts']} | {a['action']} | target={a['target_id']} | chat={a['chat_id']}" + (f" | سبب: {a['reason']}" if a.get("reason") else ""))
+        lines.append(f"- {a['ts']} | {a['action']} | target={a['target_id']} | chat={a['chat_id']}" + (f" | سبب: {a.get('reason','')}" if a.get("reason") else ""))
     await event.edit("\n".join(lines))
+
+@client.on(events.NewMessage(outgoing=True, pattern=r'\.سجل_إداري_بحث (.+)))
+async def show_admin_log_search(event):
+    query = (event.pattern_match.group(1) or "").strip().lower()
+    results = []
+    for a in admin_actions:
+        if query in str(a.get("target_id", "")).lower() or query in str(a.get("action", "")).lower() or query in str(a.get("reason", "")).lower():
+            results.append(a)
+    if not results:
+        await event.edit("لا نتائج مطابقة في السجل.")
+        return
+    lines = ["نتائج السجل:"]
+    for a in results[-25:]:
+        lines.append(f"- {a['ts']} | {a['action']} | target={a['target_id']} | chat={a['chat_id']}" + (f" | سبب: {a.get('reason','')}" if a.get("reason") else ""))
+    await event.edit("\n".join(lines))
+
+@client.on(events.NewMessage(outgoing=True, pattern=r'\.مسح_سجل_إداري))
+async def clear_admin_log(event):
+    global admin_actions
+    admin_actions = []
+    _save_actions(admin_actions)
+    await event.edit("✓ تم مسح السجل الإداري.")
+
+@client.on(events.NewMessage(outgoing=True, pattern=r'\.تصدير_سجل_إداري))
+async def export_admin_log(event):
+    try:
+        with open(EXPORT_FILE, "w", encoding="utf-8") as f:
+            for a in admin_actions:
+                f.write(f"{a['ts']} | {a['action']} | target={a['target_id']} | chat={a['chat_id']} | reason={a.get('reason','')}\n")
+        path = os.path.join(os.getcwd(), EXPORT_FILE)
+        await event.edit(f"✓ تم تصدير السجل إلى ملف.\nرابط التحميل: file://{path}")
+    except Exception as e:
+        await event.edit(f"تعذر التصدير: {e}")

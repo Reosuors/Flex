@@ -132,6 +132,11 @@ ALIASES = {
     "unban": "الغاء الحظر",
     "unrestrict": "الغاء التقييد",
     "admin_log": "سجل_إداري",
+    "admin_log_search": "سجل_إداري_بحث",
+    "admin_log_clear": "مسح_سجل_إداري",
+    "admin_log_export": "تصدير_سجل_إداري",
+    "auto_badge": "شارة_تلقائية",
+    "setup_activity_badge": "إعداد_شارة_نشاط",
 }
 
 # Do not rewrite these (they drive bilingual help system)
