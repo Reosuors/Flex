@@ -173,8 +173,7 @@ async def info_group(event):
     if created:
         caption += f"تاريخ الإنشاء: <code>{created.strftime('%b %d, %Y - %H:%M:%S')}</code>\n"
     if exp_count:
-        chat_level = int((1 + sqrt(1 + 7 * exp_count / 14)) / 2)
-        caption += f"المستوى: <code>{chat_level}</code>\n"
+        caption += f"المستوى: <code>{int((1 + sqrt(1 + 7 * exp_count / 14)) / 2)}</code>\n"
     if messages_sent:
         caption += f"الرسائل المرسلة: <code>{messages_sent}</code>\n"
     if members:
@@ -198,3 +197,29 @@ async def info_group(event):
         await event.edit(caption, parse_mode="html")
     except Exception:
         await event.edit("حدث خطأ غير متوقع.")
+
+# تقرير صلاحياتي في المجموعة/القناة الحالية
+@client.on(events.NewMessage(pattern=r"\.صلاحياتي$"))
+async def my_rights(event):
+    chat = await event.get_input_chat()
+    try:
+        full = await event.client(functions.channels.GetFullChannelRequest(chat))
+        rights = getattr(full.full_chat, "admin_rights", None) or getattr(full.full_chat, "participant", None)
+    except Exception:
+        # try chat
+        try:
+            full = await event.client(functions.messages.GetFullChatRequest(chat))
+            rights = getattr(full.full_chat, "admin_rights", None)
+        except Exception:
+            rights = None
+    if not rights:
+        await event.edit("لا تبدو مشرفًا هنا أو لا يمكن جلب الصلاحيات.")
+        return
+    flags = []
+    for attr in ("change_info","post_messages","edit_messages","delete_messages","ban_users","invite_users","pin_messages","add_admins","anonymous","manage_call","other"):
+        if hasattr(rights, attr) and getattr(rights, attr):
+            flags.append(attr)
+    if not flags:
+        await event.edit("لا توجد صلاحيات خاصة هنا.")
+    else:
+        await event.edit("صلاحياتي:\n- " + "\n- ".join(flags))

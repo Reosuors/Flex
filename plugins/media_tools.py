@@ -100,7 +100,7 @@ async def create_sticker(event):
         await event.edit(f"⪼ حدث خطأ: {str(e)}")
 
 
-@client.on(events.NewMessage(pattern=r'\.معلومات الملصق$'))
+@client.on(events.NewMessage(pattern=r'\.معلومات الملصق))
 async def sticker_info(event):
     try:
         reply = await event.get_reply_message()
@@ -163,3 +163,33 @@ async def tiktok_dl(event):
                         await status.edit("⎙ فشل تحميل الفيديو")
     except Exception as er:
         await status.edit(f"حدث خطأ: {er}")
+
+
+# صورة: ضغط سريع وجودة قابلة للتعديل
+@client.on(events.NewMessage(pattern=r'\.ضغط_صوره(?:\s(\d{1,2}))?))
+async def compress_image(event):
+    quality_raw = event.pattern_match.group(1)
+    quality = int(quality_raw) if quality_raw else 75
+    quality = max(10, min(quality, 95))
+    reply = await event.get_reply_message()
+    if not reply or not reply.media:
+        await event.edit("⎙ يجب الرد على صورة/ملف صورة.")
+        return
+    buf = io.BytesIO()
+    try:
+        if isinstance(reply.media, MessageMediaPhoto):
+            buf = await client.download_media(reply.photo, buf)
+        elif reply.document and 'image' in reply.document.mime_type:
+            await client.download_media(reply.document, buf)
+        else:
+            await event.edit("⎙ نوع الملف غير مدعوم.")
+            return
+        img = Image.open(buf).convert("RGB")
+        out = io.BytesIO()
+        out.name = "compressed.jpg"
+        img.save(out, "JPEG", quality=quality, optimize=True)
+        out.seek(0)
+        await event.delete()
+        await client.send_file(event.chat_id, out, caption=f"✓ تم الضغط (جودة {quality})")
+    except Exception as e:
+        await event.edit(f"⎙ فشل ضغط الصورة: {e}")

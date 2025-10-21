@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+import json
 import asyncio
 from telethon import events
 from core.client import client
@@ -9,10 +10,67 @@ from core.client import client
 active_publishing_tasks = {}
 base_images_dir = os.path.join(os.getcwd(), 'images')
 
+# Templates
+TEMPLATES_FILE = "publish_templates.json"
+templates = {}
+def _load_templates():
+    global templates
+    try:
+        if os.path.exists(TEMPLATES_FILE):
+            with open(TEMPLATES_FILE, "r", encoding="utf-8") as f:
+                templates = json.load(f)
+    except Exception:
+        templates = {}
+def _save_templates():
+    try:
+        with open(TEMPLATES_FILE, "w", encoding="utf-8") as f:
+            json.dump(templates, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+_load_templates()
 
-@client.on(events.NewMessage(from_users='me', pattern=r'.تكرار (\d+) (\d+) ?([\s\S]*)'))
-@client.on(events.NewMessage(from_users='me', pattern=r'.تك (\d+) (\d+) ?([\s\S]*)'))
-@client.on(events.NewMessage(from_users='me', pattern=r'.نشر (\d+) (\d+) ?([\s\S]*)'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.حفظ_قالب_نشر (\S+) ([\s\S]+)))
+async def save_template(event):
+    name = event.pattern_match.group(1)
+    text = event.pattern_match.group(2)
+    templates[name] = {"text": text}
+    _save_templates()
+    await event.edit(f"✓ تم حفظ قالب النشر '{name}'.")
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.قوالب_النشر))
+async def list_templates(event):
+    if not templates:
+        await event.edit("لا توجد قوالب نشر محفوظة.")
+        return
+    lines = [f"- {n}" for n in templates.keys()]
+    await event.edit("قوالب النشر:\n" + "\n".join(lines))
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.حذف_قالب_نشر (\S+)))
+async def delete_template(event):
+    name = event.pattern_match.group(1)
+    if name in templates:
+        del templates[name]
+        _save_templates()
+        await event.edit(f"✓ تم حذف قالب '{name}'.")
+    else:
+        await event.edit("القالب غير موجود.")
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.نشر_بقالب (\S+) (\d+) (\d+)))
+async def publish_with_template(event):
+    name = event.pattern_match.group(1)
+    seconds = int(event.pattern_match.group(2))
+    repeat_count = int(event.pattern_match.group(3))
+    tpl = templates.get(name)
+    if not tpl:
+        await event.edit("القالب غير موجود.")
+        return
+    # reuse start process with provided template text
+    event.pattern_match = type("PM", (), {"group": lambda self, i: [str(seconds), str(repeat_count), tpl["text"]][i-1]})()
+    await start_repeating_process(event)
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تكرار (\d+) (\d+) ?([\s\S]*)'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تك (\d+) (\d+) ?([\s\S]*)'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.نشر (\d+) (\d+) ?([\s\S]*)'))
 async def start_repeating_process(event):
     await event.delete()
     try:
@@ -81,8 +139,7 @@ async def start_repeating_process(event):
     except Exception as e:
         await event.reply(f"⎙ حدث خطأ: {e}")
 
-
-@client.on(events.NewMessage(from_users='me', pattern=r'.ايقاف النشر التلقائي'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.ايقاف النشر التلقائي'))
 async def stop_sending(event):
     await event.delete()
     try:
