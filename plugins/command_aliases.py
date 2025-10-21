@@ -137,6 +137,7 @@ ALIASES = {
     "admin_log_export": "تصدير_سجل_إداري",
     "auto_badge": "شارة_تلقائية",
     "setup_activity_badge": "إعداد_شارة_نشاط",
+    "anime": "انمي",
 }
 
 # Do not rewrite these (they drive bilingual help system)

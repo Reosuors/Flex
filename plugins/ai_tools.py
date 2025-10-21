@@ -189,3 +189,93 @@ async def summarize_cmd(event):
         return
     summary = simple_summarize(text, max_sentences=max_sentences)
     await event.edit(f"ملخص ({max_sentences}):\n{summary}")
+
+# ---- Anime name search from description (.انمي / .anime) ----
+ANIME_KEYWORDS = [
+    # (keywords, title_ar, title_en)
+    ({"عملاقة", "عمالقة", "تاكل البشر", "تأكل البشر", "جدران", "ايرين", "ليفاي", "المسخ"}, "هجوم العمالقة", "Attack on Titan"),
+    ({"نينجا", "كونوها", "شينوبي", "ناروتو", "ساسكي", "شراينغان"}, "ناروتو", "Naruto"),
+    ({"قرصان", "كنز", "ون بيس", "لوفي", "قبعة القش", "جراند لاين"}, "ون بيس", "One Piece"),
+    ({"دفتر", "الموت", "ريوك", "اسماء", "كي", "ياغامي"}, "مذكرة الموت", "Death Note"),
+    ({"شياطين", "نيتشيرين", "تانجيرو", "نيسر", "هاشيرا"}, "قاتل الشياطين", "Demon Slayer: Kimetsu no Yaiba"),
+    ({"غيلان", "آكلي البشر", "كانكي", "غول", "توكا"}, "طوكيو غور", "Tokyo Ghoul"),
+    ({"كيميائي", "خيميائي", "أخ معدني", "إدوارد", "ألفونس", "خيمياء"}, "الخيميائي المعدني", "Fullmetal Alchemist"),
+    ({"شينيغامي", "سيوف", "أرواح", "إيتشيغو", "سول سوسايتي"}, "بليتش", "Bleach"),
+    ({"صياد", "رخصة صياد", "غون", "كيلوا", "هورك"}, "القناص", "Hunter × Hunter"),
+    ({"لعنة", "مشعوذين", "جوجوتسو", "سوكونا", "يوجي"}, "جوجوتسو كايسن", "Jujutsu Kaisen"),
+    ({"منشار", "شيطان المنشار", "دينجي", "بوور"}, "رجل المنشار", "Chainsaw Man"),
+    ({"كرات التنين", "سايان", "غوكو", "فيجيتا", "دراغون بول"}, "دراغون بول", "Dragon Ball"),
+    ({"مدرسة", "ابطال", "قوة فردية", "إيزوكو", "أول مايت"}, "أكادمية الأبطال", "My Hero Academia"),
+    ({"سيوف", "سورد آرت", "عالم افتراضي", "كيرييتو", "اسونا"}, "فن السيف عبر الإنترنت", "Sword Art Online"),
+    ({"بحر", "سفن", "كابتن", "قبطان", "قراصنة"}, "ون بيس", "One Piece"),
+]
+
+def normalize_ar_text(t: str) -> str:
+    t = (t or "").strip().lower()
+    # remove diacritics and common punctuation
+    t = re.sub(r"[ًٌٍَُِّْـ]", "", t)
+    t = re.sub(r"[^\w\u0621-\u064A\s]", " ", t)
+    return t
+
+def guess_anime_local(description: str):
+    text = normalize_ar_text(description)
+    scores = []
+    for kws, title_ar, title_en in ANIME_KEYWORDS:
+        score = sum(1 for k in kws if k in text)
+        if score:
+            scores.append((score, title_ar, title_en, ", ".join(sorted(kws))))
+    scores.sort(key=lambda x: x[0], reverse=True)
+    return scores[:3]
+
+async def guess_anime_openai(description: str):
+    try:
+        from core.config import OPENAI_API_KEY
+        if not OPENAI_API_KEY:
+            return None
+        try:
+            from openai import OpenAI
+        except Exception:
+            return None
+        client_ai = OpenAI(api_key=OPENAI_API_KEY)
+        system_msg = (
+            "أنت خبير أنمي. سيُعطى لك وصف موجز بالعربية أو الإنجليزية، "
+            "أعطِ أفضل 3 ترشيحات لأسماء أنمي (العربي والإنجليزي إن أمكن) مع سبب قصير جدًا."
+        )
+        prompt = f"الوصف: {description}\nأعطِ 3 ترشيحات مثل: - هجوم العمالقة (Attack on Titan): سبب قصير"
+        resp = client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "system", "content": system_msg}, {"role": "user", "content": prompt}],
+            temperature=0.4,
+            max_tokens=220,
+        )
+        content = (resp.choices[0].message.content or "").strip()
+        return content
+    except Exception:
+        return None
+
+@client.on(events.NewMessage(outgoing=True, pattern=r"\.انمي(?:\s+([\s\S]+))?$"))
+async def anime_search_cmd(event):
+    desc = event.pattern_match.group(1)
+    if not desc and event.is_reply:
+        reply = await event.get_reply_message()
+        desc = reply.message or reply.raw_text
+    if not desc:
+        await event.edit("اكتب: .انمي <وصف القصة> أو بالرد على رسالة.\nمثال: .انمي عملاقة تاكل البشر")
+        return
+
+    # Try local heuristic
+    local = guess_anime_local(desc)
+    lines = []
+    if local:
+        lines.append("ترشيحات محلية:\n" + "\n".join([f"- {ar} ({en})" for _, ar, en, _ in local]))
+
+    # Try OpenAI for broader matching if available
+    ai_result = await guess_anime_openai(desc)
+    if ai_result:
+        lines.append("ترشيحات الذكاء الاصطناعي:\n" + ai_result)
+
+    if not lines:
+        await event.edit("لم أتعرف على أنمي من هذا الوصف. جرّب وصفًا آخر أو تفاصيل أكثر.")
+        return
+
+    await event.edit("\n\n".join(lines))
