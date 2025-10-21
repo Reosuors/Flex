@@ -12,10 +12,10 @@ FOOTER_AR = "\n— مستند الأوامر • FLEX (Inline) —\n"
 
 HEADER_EN = (
     "╔════════════════════════════════════════════════╗\n"
-    "║   𓆩 FLEX Commands – Beautiful and Easy to Use 𓆪   ║\n"
+    "║   𓆩 FLEX Commands – Elegant & Easy to Use 𓆪   ║\n"
     "╚════════════════════════════════════════════════╝\n"
 )
-FOOTER_EN = "\n— Commands Reference • FLEX (Inline) —\n"
+FOOTER_EN = "\n— Command Reference • FLEX (Inline) —\n"
 
 SEPARATOR = "\n┄┄┄┄┄┄┄┄┄┄┄\n"
 
@@ -43,6 +43,8 @@ COMMANDS_AR = {
         (".حذف رد", "حذف رد مخصص (بالرد على نص مضاف سابقًا)."),
         (".سماح", "سماح محادثة خاصة معينة من قيود الرد."),
         (".الغاء السماح", "إلغاء السماح لمحادثة خاصة."),
+        (".جدولة_الغياب HH:MM HH:MM", "جدولة وضع الغياب يوميًا بين الوقتين."),
+        (".الغاء_الجدولة", "إلغاء جدولة وضع الغياب."),
     ],
     "الألعاب": [
         (".سهم [1-6] | 🎯", "لعبة السهم. يمكن تحديد رقم مطلوب."),
@@ -55,17 +57,30 @@ COMMANDS_AR = {
         (".حكم", "يولّد تحدّي/مهمّة خفيفة وعفوية."),
         (".حقيقة", "يولّد سؤال حقيقة محترم."),
     ],
+    "التفاعلات الوهمية": [
+        (".يكتب [ثواني]", "يظهر أنك تكتب دون إرسال."),
+        (".يرفع_صورة [ثواني]", "يظهر رفع صورة."),
+        (".يرفع_ملف [ثواني]", "يظهر رفع ملف."),
+        (".يرفع_فيديو [ثواني]", "يظهر رفع فيديو."),
+        (".يرفع_صوت [ثواني]", "يظهر رفع صوت."),
+        (".يسجل_فيديو [ثواني]", "يظهر تسجيل فيديو."),
+        (".يسجل_صوت [ثواني]", "يظهر تسجيل صوت."),
+        (".اختيار_ملصق [ثواني]", "يظهر اختيار ملصق."),
+        (".يلعب [ثواني]", "يظهر لعب لعبة."),
+    ],
     "الوسائط والأدوات": [
         (".يوتيوب <بحث>", "جلب أول فيديو مطابق من يوتيوب."),
         (".ملصق", "صنع ملصق من صورة/ملصق بالرد على الوسائط."),
         (".معلومات الملصق", "جلب معلومات حزمة الملصقات."),
         (".تك <رابط>", "تحميل فيديو تيك توك بدون علامة مائية."),
+        (".ضغط_صوره [جودة]", "ضغط صورة بسرعة، الجودة 10-95 (افتراضي 75)."),
     ],
     "الذكاء الاصطناعي": [
         (".ذكاء <نص/بالرد>", "رد ذكي مختصر—مثال: .ذكاء كيف حالك → 'بخير الحمد لله!'."),
         (".ترجم <لغة> [نص/بالرد]", "ترجمة ذكية عبر Google (gpytranslate/deep-translator)."),
         (".كشف_لغة [نص/بالرد]", "كشف لغة النص تلقائيًا."),
         (".تلخيص [عدد_الجمل] (بالرد)", "تلخيص سريع للنص إلى عدد جمل محدد."),
+        (".انمي <وصف>", "اقتراح اسم أنمي من وصف/قصة قصيرة."),
     ],
     "الصيد (يوزرات)": [
         (".صيد <نمط>", "بدء عملية صيد يوزر وفق النمط المحدد."),
@@ -130,6 +145,8 @@ COMMANDS_AR = {
         (".الغاء التقييد [reply/ID/@]", "إلغاء التقييد."),
     ],
 }
+
+SECTIONS_AR = list(COMMANDS_AR.keys())
 
 COMMANDS_EN = {
     "Statistics": [
@@ -256,6 +273,8 @@ COMMANDS_EN = {
     ],
 }
 
+SECTIONS_EN = list(COMMANDS_EN.keys())
+
 def build_section(title, items):
     lines = [f"• {cmd}\n  ⤷ {desc}" for cmd, desc in items]
     return f"【 {title} 】\n" + "\n".join(lines)
@@ -269,9 +288,10 @@ def build_help_text(commands, header, footer):
     return "\n".join(parts)
 
 def build_menu_text(lang):
-    return (HEADER_AR if lang == "AR" else HEADER_EN) + \
-        ("اختر قسمًا من الأزرار أدناه لعرض أوامره مع الشرح.\n" if lang == "AR" else "Choose a section from the buttons below to view its commands and descriptions.\n") + \
-        (FOOTER_AR if lang == "AR" else FOOTER_EN)
+    header = HEADER_AR if lang == "AR" else HEADER_EN
+    footer = FOOTER_AR if lang == "AR" else FOOTER_EN
+    intro = "اختر قسمًا من الأزرار أدناه لعرض أوامره مع الشرح.\n" if lang == "AR" else "Choose a section from the buttons below to view its commands and descriptions.\n"
+    return header + intro + footer
 
 def build_menu_buttons(lang, sections):
     rows = []
@@ -305,20 +325,19 @@ def build_section_buttons_by_index(index, lang, sections):
     ])
     return buttons
 
-# Only register if bot client exists
+# Register only if bot exists
 if bot is not None:
     @bot.on(events.InlineQuery)
     async def inline_query_handler(event):
         q = (event.query or "").strip().lower()
-        # detect language from query keywords
-        if q in ("", "الاوامر", "اوامر", "مساعدة", "help", "assist"):
-            lang = "EN" if q in ("help", "assist") else "AR"
+        if q in ("", "مساعدة", "الاوامر", "اوامر"):
+            lang = "AR"
+        elif q in ("help", "commands", "assist"):
+            lang = "EN"
         elif q in ("english", "en"):
             lang = "EN"
         else:
-            # default to AR for non-recognized queries to avoid confusion
             lang = "AR"
-
         commands = COMMANDS_AR if lang == "AR" else COMMANDS_EN
         sections = list(commands.keys())
         text = build_menu_text(lang)
@@ -348,12 +367,13 @@ if bot is not None:
         if action in {"MENU", "ALL"}:
             if action == "MENU":
                 await event.edit(build_menu_text(lang), buttons=build_menu_buttons(lang, sections))
-            elif action == "ALL":
+            else:
                 await event.edit("جارٍ عرض جميع الأقسام..." if lang == "AR" else "Showing all sections...")
                 text = build_help_text(commands, HEADER_AR if lang == "AR" else HEADER_EN, FOOTER_AR if lang == "AR" else FOOTER_EN)
                 await bot.send_message(event.chat_id, text)
                 await event.answer("تم الإرسال." if lang == "AR" else "Sent.")
             return
+
         if action.startswith("idx"):
             try:
                 index = int(parts[3])
