@@ -152,3 +152,25 @@ async def set_check_image_en(event):
 
     if not saved:
         await event.reply("Provide a direct image URL or reply to an image, then run the command.\nExample: `.set_check_image ar https://...` or reply to an image then: `.set_check_image ar`")
+
+# ----------------------
+# Commands to clear images
+# ----------------------
+
+# Arabic clear: ".مسح صورة فحص (عربي|انجليزي)"
+@client.on(events.NewMessage(pattern=r"\.مسح صورة فحص (عربي|انجليزي)"))
+async def clear_check_image_ar(event):
+    lang = event.pattern_match.group(1)
+    key = "ar" if lang == "عربي" else "en"
+    CFG[key] = ""
+    _save_cfg(CFG)
+    await event.reply(f"✓ تم مسح صورة الفحص ({'العربية' if key=='ar' else 'الإنجليزية'}) والرجوع للوضع الافتراضي.")
+
+# English clear: ".clear_check_image (ar|en)"
+@client.on(events.NewMessage(pattern=r"\.clear_check_image (ar|en)"))
+async def clear_check_image_en(event):
+    lang = event.pattern_match.group(1).lower()
+    key = "ar" if lang == "ar" else "en"
+    CFG[key] = ""
+    _save_cfg(CFG)
+    await event.reply(f"✓ Cleared check image for ({key}); back to default behavior.")
