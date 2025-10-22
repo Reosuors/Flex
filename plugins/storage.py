@@ -193,31 +193,66 @@ async def storage_test(event):
 
 @client.on(events.NewMessage(incoming=True))
 async def forward_private_to_storage(event):
-    # Forward incoming private messages to storage group if configured and forwarding enabled
+    # Forward incoming private messages or replies to my messages in groups to storage group if configured
     group_id = _load_group_id()
     conf = _load_conf()
     if not group_id or not conf.get("forward_enabled", True):
         return
 
+    # Case 1: private messages
     if event.is_private:
         try:
             sender = await event.get_sender()
             if getattr(sender, "bot", False):
                 return
         except Exception:
-            pass
+            return
         try:
             await client.forward_messages(group_id, event.message)
         except Exception:
             return
-        # Optional: add simple meta
         try:
             sender = await event.get_sender()
             meta = (
-                f"#التــاكــات\n\n"
-                f"⌔┊المستخدم : <code>{(sender.first_name or '')}</code>\n"
-                f"⌔┊المعرف : <code>{sender.id}</code>\n"
-                f"⌔┊الرسالة : {(event.message.message or '')}"
+                f"#Private\n"
+                f"⌔┊User : <code>{(sender.first_name or '')}</code>\n"
+                f"⌔┊ID   : <code>{sender.id}</code>\n"
+                f"⌔┊Text : {(event.message.message or '')}"
+            )
+            await client.send_message(group_id, meta, parse_mode="html", link_preview=False)
+        except Exception:
+            pass
+        return
+
+    # Case 2: replies to my messages in groups/channels
+    if (event.is_group or event.is_channel) and event.is_reply:
+        try:
+            reply_msg = await event.get_reply_message()
+            me = await client.get_me()
+            if not reply_msg or reply_msg.sender_id != me.id:
+                return
+            sender = await event.get_sender()
+            if getattr(sender, "bot", False):
+                return
+        except Exception:
+            return
+
+        # forward the reply message itself
+        try:
+            await client.forward_messages(group_id, event.message)
+        except Exception:
+            return
+
+        # add meta with chat title and replied snippet
+        try:
+            chat = await event.get_chat()
+            sender = await event.get_sender()
+            meta = (
+                f"#ReplyToMe\n"
+                f"⌔┊Chat : <code>{getattr(chat, 'title', '') or 'Private/Unknown'}</code>\n"
+                f"⌔┊From : <code>{(sender.first_name or '')}</code> | <code>{sender.id}</code>\n"
+                f"⌔┊ReplyTo: {(reply_msg.message or '')}\n"
+                f"⌔┊Text : {(event.message.message or '')}"
             )
             await client.send_message(group_id, meta, parse_mode="html", link_preview=False)
         except Exception:
