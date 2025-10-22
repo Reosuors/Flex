@@ -4,6 +4,7 @@ from core.client import client
 
 # Default remote URLs (can be overridden by env vars)
 DEFAULT_AR_URL = "https://files.catbox.moe/fcqmhx.jpeg"
+DEFAULT_EN_URL = "https://files.catbox.moe/sdzlav.jpeg"
 
 def project_file(*parts: str) -> str:
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", *parts))
@@ -39,7 +40,7 @@ async def check_source_en(event):
     img = resolve_image(
         [project_file("flex_en.jpg")],
         "FLEX_EN_URL",
-        None,
+        DEFAULT_EN_URL,
     )
     if img:
         await client.send_file(event.chat_id, file=img, caption="Flex source is running ✅ Enjoy")
