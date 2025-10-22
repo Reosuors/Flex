@@ -12,9 +12,22 @@ from core.client import client
 GROUP_ID_FILE = 'group_id.pkl'
 ARCHIVE_ID_FILE = 'archive_id.pkl'
 STORAGE_CONF_FILE = 'storage_config.json'
+STORAGE_SECTIONS_FILE = 'storage_sections.json'
 STORAGE_GROUP_TITLE = "كروب التخزين"
 STORAGE_GROUP_BIO = "كروب التخزين المخصص من سورس flex"
 STORAGE_PHOTO_NAME = "flex.jpg"
+
+# تعريف الأقسام
+SECTION_KEYS = {
+    "privates": "قسم رسائل الخاص",
+    "group_replies": "قسم ردود المجموعة",
+    "images": "قسم الصور",
+    "videos": "قسم الفيديو",
+    "voices": "قسم الصوتيات",
+    "documents": "قسم الملفات",
+    "stickers": "قسم الملصقات",
+    "others": "قسم أخرى"
+}
 
 
 def _load_id(path):
@@ -51,6 +64,19 @@ def _load_conf():
 def _save_conf(conf: dict):
     with open(STORAGE_CONF_FILE, 'w', encoding='utf-8') as f:
         json.dump(conf, f, ensure_ascii=False, indent=2)
+
+def _load_sections():
+    if os.path.exists(STORAGE_SECTIONS_FILE):
+        try:
+            with open(STORAGE_SECTIONS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def _save_sections(mapping: dict):
+    with open(STORAGE_SECTIONS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(mapping, f, ensure_ascii=False, indent=2)
 
 
 async def _ensure_storage_group(event):
@@ -93,6 +119,63 @@ async def _ensure_storage_group(event):
     await event.reply("**⎙ تم إنشاء كروب جديد وتعيينه لتخزين الرسائل الخاصة**")
     return group_id
 
+async def _ensure_section_headers(group_id: int):
+    """
+    ينشئ رسائل رأسية لكل قسم (إن لم تكن موجودة) ويُعيد خريطة القسم -> message_id.
+    """
+    mapping = _load_sections()
+    if str(group_id) not in mapping:
+        mapping[str(group_id)] = {}
+
+    group_map = mapping[str(group_id)]
+    changed = False
+
+    for key, title in SECTION_KEYS.items():
+        if key not in group_map or not isinstance(group_map.get(key), int):
+            try:
+                header = await client.send_message(group_id, f"— {title} —\nأرسل/سيتم التخزين هنا كـ Reply على هذه الرسالة.")
+                group_map[key] = header.id
+                changed = True
+                await asyncio.sleep(0.2)
+            except Exception:
+                pass
+
+    if changed:
+        _save_sections(mapping)
+    return group_map
+
+def _detect_section_key(msg) -> str:
+    """
+    يحاول تحديد القسم الأنسب بناءً على نوع الوسائط/الرسالة.
+    """
+    if getattr(msg, "media", None):
+        media = msg.media
+        # صور
+        if getattr(media, "photo", None):
+            return "images"
+        # مستندات (قد تكون فيديو/صوت/ملصق)
+        doc = getattr(media, "document", None)
+        if doc and getattr(doc, "mime_type", None):
+            mt = doc.mime_type or ""
+            if mt.startswith("image/"):
+                return "images"
+            if mt.startswith("video/"):
+                return "videos"
+            if mt.startswith("audio/"):
+                return "voices"
+            if "webp" in mt or "sticker" in mt:
+                return "stickers"
+            return "documents"
+        # Voice/video notes
+        if getattr(media, "voice", None):
+            return "voices"
+        if getattr(media, "video", None):
+            return "videos"
+        return "documents"
+    else:
+        # نص فقط
+        return "others"
+
 
 # Enable storage (AR/EN)
 @client.on(events.NewMessage(from_users='me', pattern=r'\.تفعيل التخزين))
@@ -104,6 +187,8 @@ async def enable_storage(event):
         conf = _load_conf()
         conf["forward_enabled"] = True
         _save_conf(conf)
+        # تأمين رؤوس الأقسام
+        await _ensure_section_headers(gid)
         await event.respond(f"**⎙ التخزين مُفعّل. المعرف: {gid}**")
     except Exception as e:
         await event.respond(f"⎙ حدث خطأ: {str(e)}")
@@ -138,6 +223,8 @@ async def bind_storage(event):
     conf = _load_conf()
     conf["forward_enabled"] = True
     _save_conf(conf)
+    # تأمين رؤوس الأقسام
+    await _ensure_section_headers(chat_id)
     await event.edit(f"**⎙ تم تعيين هذا الكروب كمخزن. المعرف: {chat_id}**")
 
 
@@ -193,11 +280,19 @@ async def storage_test(event):
 
 @client.on(events.NewMessage(incoming=True))
 async def forward_private_to_storage(event):
-    # Forward incoming private messages or replies to my messages in groups to storage group if configured
+    """
+    يرسل الرسائل إلى أقسام مخصصة داخل كروب التخزين:
+    - رسائل الخاص إلى 'privates'
+    - ردود على رسائلي في المجموعات إلى 'group_replies'
+    - وباقي الأنواع تُصنّف حسب الوسائط (صور/فيديو/صوت/ملفات/ملصقات/نصوص أخرى)
+    """
     group_id = _load_group_id()
     conf = _load_conf()
     if not group_id or not conf.get("forward_enabled", True):
         return
+
+    # Ensure section headers exist
+    sections = await _ensure_section_headers(group_id)
 
     # Case 1: private messages
     if event.is_private:
@@ -207,19 +302,39 @@ async def forward_private_to_storage(event):
                 return
         except Exception:
             return
+
+        # اختر القسم حسب نوع الوسائط: images/videos/voices/documents/stickers/others
+        media_key = _detect_section_key(event.message)
+        header_id = sections.get(media_key) or sections.get("others")
+
         try:
-            await client.forward_messages(group_id, event.message)
+            if event.message.media:
+                await client.send_file(
+                    group_id,
+                    file=event.message,
+                    caption=(event.message.message or ""),
+                    reply_to=header_id,
+                    parse_mode="html",
+                    link_preview=False
+                )
+            else:
+                await client.send_message(
+                    group_id,
+                    (event.message.message or ""),
+                    reply_to=header_id,
+                    parse_mode="html",
+                    link_preview=False
+                )
         except Exception:
             return
+
+        # Add meta under the same header
         try:
-            sender = await event.get_sender()
             meta = (
-                f"#Private\n"
-                f"⌔┊User : <code>{(sender.first_name or '')}</code>\n"
-                f"⌔┊ID   : <code>{sender.id}</code>\n"
-                f"⌔┊Text : {(event.message.message or '')}"
+                f"— مصدر: رسائل خاص\n"
+                f"المرسل: <code>{(sender.first_name or '')}</code> | <code>{sender.id}</code>"
             )
-            await client.send_message(group_id, meta, parse_mode="html", link_preview=False)
+            await client.send_message(group_id, meta, reply_to=header_id, parse_mode="html", link_preview=False)
         except Exception:
             pass
         return
@@ -237,26 +352,44 @@ async def forward_private_to_storage(event):
         except Exception:
             return
 
-        # forward the reply message itself
+        header_id = sections.get("group_replies")
         try:
-            await client.forward_messages(group_id, event.message)
+            if event.message.media:
+                await client.send_file(
+                    group_id,
+                    file=event.message,
+                    caption=(event.message.message or ""),
+                    reply_to=header_id,
+                    parse_mode="html",
+                    link_preview=False
+                )
+            else:
+                await client.send_message(
+                    group_id,
+                    (event.message.message or ""),
+                    reply_to=header_id,
+                    parse_mode="html",
+                    link_preview=False
+                )
         except Exception:
             return
 
-        # add meta with chat title and replied snippet
+        # add meta
         try:
             chat = await event.get_chat()
-            sender = await event.get_sender()
             meta = (
-                f"#ReplyToMe\n"
-                f"⌔┊Chat : <code>{getattr(chat, 'title', '') or 'Private/Unknown'}</code>\n"
-                f"⌔┊From : <code>{(sender.first_name or '')}</code> | <code>{sender.id}</code>\n"
-                f"⌔┊ReplyTo: {(reply_msg.message or '')}\n"
-                f"⌔┊Text : {(event.message.message or '')}"
+                f"— مصدر: رد ضمن مجموعة\n"
+                f"المجموعة: <code>{getattr(chat, 'title', '') or 'Private/Unknown'}</code>\n"
+                f"المرسل: <code>{(sender.first_name or '')}</code> | <code>{sender.id}</code>\n"
+                f"ردًا على: {(reply_msg.message or '')[:400]}"
             )
-            await client.send_message(group_id, meta, parse_mode="html", link_preview=False)
+            await client.send_message(group_id, meta, reply_to=header_id, parse_mode="html", link_preview=False)
         except Exception:
             pass
+        return
+
+    # Other incoming messages (we generally ignore)
+    return
 
 
 # إعداد الأرشيف الذكي + أرشفة الوسائط الأقدم
