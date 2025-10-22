@@ -263,7 +263,7 @@ COMMANDS_EN = {
     "Administration": [
         (".ban [reply/ID/@]", "Ban a user from the group."),
         (".kick [reply/ID/@]", "Kick a user from the group."),
-        (".restrict [reply/ID/@]", "Restrict user from sending messages."),
+        (".restrict [reply/ID/@]", "Restrict a user from sending messages."),
         (".unban [reply/ID/@]", "Unban user."),
         (".unrestrict [reply/ID/@]", "Unrestrict user."),
     ],

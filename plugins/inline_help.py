@@ -1,7 +1,7 @@
 from telethon import events, Button
 from core.bot_client import bot
 
-# Inline-mode helper with bilingual support (AR/EN)
+# Clean bilingual inline help (AR/EN) with updated sections
 
 HEADER_AR = (
     "╔════════════════════════════════════════════════╗\n"
@@ -25,8 +25,15 @@ COMMANDS_AR = {
         (".معلوماتي", "تفاصيل متقدمة عن الحساب: عدد المحادثات، البوتات، المجموعات والقنوات."),
     ],
     "التخزين": [
-        (".تفعيل التخزين", "إنشاء وتفعيل كروب تخزين خاص بالرسائل الواردة من الخاص."),
-        (".تعطيل التخزين", "إيقاف التخزين وحذف تعريف مجموعة التخزين المحلية."),
+        (".تفعيل التخزين", "إنشاء/تفعيل كروب التخزين وإنشاء أقسامه."),
+        (".تعطيل التخزين", "إيقاف التخزين وإلغاء الربط وإيقاف التحويل."),
+        (".تعيين_تخزين", "تعيين كروب موجود كمخزن (بالرد داخل الكروب)."),
+        (".حالة التخزين", "عرض حالة التخزين ومعلوماته."),
+        (".تشغيل التحويل", "تشغيل التحويل التلقائي إلى كروب التخزين."),
+        (".ايقاف التحويل", "إيقاف التحويل التلقائي إلى كروب التخزين."),
+        (".اختبار التخزين", "إرسال رسالة اختبار إلى كروب التخزين."),
+        (".تعيين_ارشيف <id> | بالرد", "تعيين محادثة الأرشيف بالمعرف أو بالرد."),
+        (".أرشفة <أيام>", "نقل الوسائط الأقدم من عدد الأيام المحدد إلى الأرشيف."),
     ],
     "الردود التلقائية": [
         (".اضف رد + الكلمة + الرد", "إضافة رد تلقائي للكلمة المحددة."),
@@ -43,8 +50,6 @@ COMMANDS_AR = {
         (".حذف رد", "حذف رد مخصص (بالرد على نص مضاف سابقًا)."),
         (".سماح", "سماح محادثة خاصة معينة من قيود الرد."),
         (".الغاء السماح", "إلغاء السماح لمحادثة خاصة."),
-        (".جدولة_الغياب HH:MM HH:MM", "جدولة وضع الغياب يوميًا بين الوقتين."),
-        (".الغاء_الجدولة", "إلغاء جدولة وضع الغياب."),
     ],
     "الألعاب": [
         (".سهم [1-6] | 🎯", "لعبة السهم. يمكن تحديد رقم مطلوب."),
@@ -57,97 +62,31 @@ COMMANDS_AR = {
         (".حكم", "يولّد تحدّي/مهمّة خفيفة وعفوية."),
         (".حقيقة", "يولّد سؤال حقيقة محترم."),
     ],
-    "التفاعلات الوهمية": [
-        (".يكتب [ثواني]", "يظهر أنك تكتب دون إرسال."),
-        (".يرفع_صورة [ثواني]", "يظهر رفع صورة."),
-        (".يرفع_ملف [ثواني]", "يظهر رفع ملف."),
-        (".يرفع_فيديو [ثواني]", "يظهر رفع فيديو."),
-        (".يرفع_صوت [ثواني]", "يظهر رفع صوت."),
-        (".يسجل_فيديو [ثواني]", "يظهر تسجيل فيديو."),
-        (".يسجل_صوت [ثواني]", "يظهر تسجيل صوت."),
-        (".اختيار_ملصق [ثواني]", "يظهر اختيار ملصق."),
-        (".يلعب [ثواني]", "يظهر لعب لعبة."),
-    ],
     "الوسائط والأدوات": [
         (".يوتيوب <بحث>", "جلب أول فيديو مطابق من يوتيوب."),
         (".ملصق", "صنع ملصق من صورة/ملصق بالرد على الوسائط."),
         (".معلومات الملصق", "جلب معلومات حزمة الملصقات."),
         (".تك <رابط>", "تحميل فيديو تيك توك بدون علامة مائية."),
-        (".ضغط_صوره [جودة]", "ضغط صورة بسرعة، الجودة 10-95 (افتراضي 75)."),
-    ],
-    "الفحص": [
-        (".فحص", "إرسال صورة الفحص العربية مع التعليق الافتراضي أو المخصص."),
-        (".تعيين صورة فحص عربي <رابط> | بالرد على صورة", "تعيين/حفظ صورة الفحص العربية (من رابط أو بالرد على وسائط)."),
-        (".تعيين صورة فحص انجليزي <رابط> | بالرد على صورة", "تعيين/حفظ صورة الفحص الإنجليزية (من رابط أو بالرد على وسائط)."),
-        (".مسح صورة فحص عربي", "مسح إعداد صورة الفحص العربية والرجوع للوضع الافتراضي."),
-        (".مسح صورة فحص انجليزي", "مسح إعداد صورة الفحص الإنجليزية والرجوع للوضع الافتراضي."),
     ],
     "الذكاء الاصطناعي": [
         (".ذكاء <نص/بالرد>", "رد ذكي مختصر—مثال: .ذكاء كيف حالك → 'بخير الحمد لله!'."),
-        (".ترجم <لغة> [نص/بالرد]", "ترجمة ذكية عبر Google (gpytranslate/deep-translator)."),
+        (".ترجم <لغة> [نص/بالرد]", "ترجمة ذكية عبر Google."),
         (".كشف_لغة [نص/بالرد]", "كشف لغة النص تلقائيًا."),
-        (".تلخيص [عدد_الجمل] (بالرد)", "تلخيص سريع للنص إلى عدد جمل محدد."),
-        (".انمي <وصف>", "اقتراح اسم أنمي من وصف/قصة قصيرة."),
-    ],
-    "الصيد (يوزرات)": [
-        (".صيد <نمط>", "بدء عملية صيد يوزر وفق النمط المحدد."),
-        (".حالة الصيد", "عرض حالة الصيد وعدد المحاولات."),
-        (".ايقاف الصيد", "إيقاف عملية الصيد الحالية."),
-    ],
-    "المراقبة": [
-        (".مراقبة <@user>", "بدء مراقبة تغييرات الاسم/الصورة/البايو للمستخدم."),
-        (".ايقاف_المراقبة <@user>", "إيقاف مراقبة المستخدم."),
-    ],
-    "الملف الشخصي": [
-        (".تفعيل الاسم الوقتي", "إضافة الوقت تلقائيًا إلى الاسم."),
-        (".تعطيل الاسم الوقتي", "إيقاف وإزالة الوقت من الاسم."),
-        (".الاسم (الاسم)", "تعيين الاسم (مع الوقت الحالي)."),
-        (".انتحال", "انتحال مستخدم ترد عليه (اسم/بايو/صورة)."),
-        (".ارجاع", "استرجاع الاسم/البايو/الصورة الأصلية المخزنة."),
-    ],
-    "حماية الخاص والتحذيرات": [
-        (".حماية الخاص", "تفعيل/تعطيل حماية الخاص من الكلمات السيئة."),
-        (".قبول", "قبول مستخدم محدد (بالرد) لاستثنائه من التحذيرات."),
-        (".الغاء القبول", "إلغاء قبول مستخدم (بالرد)."),
-        (".مسح التحذيرات", "مسح جميع تحذيرات المستخدم (بالرد)."),
-        (".التحذيرات", "عرض عدد تحذيراتك الحالية."),
-        (".تعيين كليشة التحذير", "تغيير رسالة التحذير (بالرد على النص)."),
-        (".عرض كليشة", "عرض رسالة التحذير الحالية."),
-        (".عدد التحذيرات <n>", "تعديل الحد الأقصى المسموح من التحذيرات."),
-        (".المحظورين", "عرض قائمة المحظورين (حسب التحذيرات)."),
-        (".مسح المحظورين", "مسح جميع المحظورين من القائمة."),
-    ],
-    "الاختصارات والميمز": [
-        (".اختصار + <كلمة>", "حفظ اختصار نصي (بالرد على رسالة)."),
-        (".حذف اختصار + <كلمة>", "حذف اختصار محفوظ."),
-        (".الاختصارات", "عرض جميع الاختصارات المحفوظة."),
-        (".ميمز <key> <url>", "إضافة بصمة ميمز كرابط."),
-        (".ميمز حفظ <key>", "حفظ بصمة ميمز من وسائط بالرد."),
-        (".ميمز جلب <key>", "إرسال الميمز كملف إن كان وسيطًا أو عرض الرابط."),
-        (".ميمز عرض <key>", "عرض الميمز المرتبط بالبصمة."),
-        (".قائمة الميمز", "عرض قائمة بصمات الميمز."),
-        (".ازالة <key>", "حذف بصمة ميمز."),
-        (".ازالة_البصمات", "حذف جميع بصمات الميمز."),
-    ],
-    "النشر الآلي": [
-        (".تكرار <ثواني> <عدد> [نص]", "نشر متكرر، يمكن بالرد على صورة/ألبوم."),
-        (".تك <ثواني> <عدد> [نص]", "اختصار لأمر التكرار."),
-        (".نشر <ثواني> <عدد> [نص]", "اختصار آخر لأمر التكرار."),
-        (".ايقاف النشر التلقائي", "إيقاف جميع عمليات النشر المتكررة."),
+        (".تلخيص [عدد_الجمل] (بالرد)", "تلخيص سريع للنص."),
     ],
     "أدوات القنوات والمجموعات": [
-        (".قائمه جميع القنوات", "عرض قائمة القنوات العامة/الخاصة."),
-        (".قائمه القنوات المشرف عليها", "عرض القنوات التي أنت مشرف فيها."),
-        (".قائمه قنواتي", "عرض القنوات التي أنت مالكها."),
-        (".قائمه جميع المجموعات", "عرض جميع المجموعات (العادية/الخارقة)."),
-        (".قائمه مجموعات اديرها", "عرض المجموعات التي أنت مشرف فيها."),
-        (".قائمه كروباتي", "عرض المجموعات التي أنت مالكها."),
-        (".كشف المجموعة [reply/ID]", "كشف معلومات متقدمة عن مجموعة/قناة."),
+        (".قائمه جميع القنوات", "عرض قائمة القنوات."),
+        (".قائمه القنوات المشرف عليها", "القنوات التي أنت مشرف فيها."),
+        (".قائمه قنواتي", "قنواتك (مالك)."),
+        (".قائمه جميع المجموعات", "عرض جميع المجموعات."),
+        (".قائمه مجموعات اديرها", "المجموعات التي أنت مشرف فيها."),
+        (".قائمه كروباتي", "المجموعات التي أنت مالكها."),
+        (".كشف المجموعة [reply/ID]", "معلومات متقدمة عن مجموعة/قناة."),
     ],
     "الإدارة": [
-        (".حظر [reply/ID/@]", "حظر مستخدم من المجموعة."),
-        (".طرد [reply/ID/@]", "طرد مستخدم من المجموعة."),
-        (".تقييد [reply/ID/@]", "تقييد إرسال الرسائل لمستخدم."),
+        (".حظر [reply/ID/@]", "حظر مستخدم."),
+        (".طرد [reply/ID/@]", "طرد مستخدم."),
+        (".تقييد [reply/ID/@]", "تقييد مستخدم."),
         (".الغاء الحظر [reply/ID/@]", "إلغاء الحظر."),
         (".الغاء التقييد [reply/ID/@]", "إلغاء التقييد."),
     ],
@@ -158,125 +97,75 @@ SECTIONS_AR = list(COMMANDS_AR.keys())
 COMMANDS_EN = {
     "Statistics": [
         (".stats", "Show account stats: users, groups, channels, bots."),
-        (".meinfo", "Advanced details: dialogs, bots, groups and channels."),
+        (".myinfo", "Advanced details: dialogs, bots, groups and channels."),
     ],
     "Storage": [
-        (".enable_storage", "Create/enable a storage group for forwarding private messages."),
-        (".disable_storage", "Disable storage and remove local group binding."),
+        (".enable_storage", "Create/enable storage group and initialize sections."),
+        (".disable_storage", "Disable storage, unbind group and stop forwarding."),
+        (".bind_storage", "Bind existing group as storage (reply inside)."),
+        (".storage_status", "Show storage status, IDs, and forwarding state."),
+        (".start_forward", "Turn on auto-forwarding."),
+        (".stop_forward", "Turn off auto-forwarding."),
+        (".storage_test", "Send a test message to storage."),
+        (".set_archive <id> | reply", "Set archive chat by ID or by replying."),
+        (".archive <days>", "Move media older than N days to archive."),
     ],
     "Auto Replies": [
-        (".add_reply + KEY + VALUE", "Add an auto reply for a specific keyword."),
-        (".replies", "List all saved replies."),
-        (".enable_here", "Enable auto replies in this group."),
-        (".disable_here", "Disable auto replies in this group."),
+        (".add_reply + KEY + VALUE", "Add an auto reply."),
+        (".replies", "List saved replies."),
+        (".enable_here", "Enable auto replies here."),
+        (".disable_here", "Disable auto replies here."),
     ],
     "AFK & Custom Replies": [
-        (".afk_on", "Enable AFK auto replies."),
-        (".custom_on", "Enable custom replies based on triggers."),
-        (".afk_off", "Disable AFK and custom replies."),
-        (".reply_template", "Set a reply template (reply to a message)."),
-        (".reply <text>", "Add a custom reply to the replied message."),
-        (".del_reply", "Delete a custom reply (reply to the original message)."),
-        (".allow", "Allow this private chat from AFK restrictions."),
-        (".disallow", "Remove allow for this private chat."),
+        (".afk_on", "Enable AFK."),
+        (".custom_on", "Enable custom replies."),
+        (".afk_off", "Disable AFK/custom."),
+        (".reply_template", "Set reply template (reply)."),
+        (".reply <text>", "Add a custom reply (reply to trigger)."),
+        (".del_reply", "Delete a custom reply (reply)."),
+        (".allow", "Allow a private chat."),
+        (".disallow", "Remove allowance."),
     ],
     "Games": [
-        (".dart [1-6] | 🎯", "Dart game. Optionally pick a number."),
-        (".dice [1-6] | 🎲", "Dice game. Optionally pick a number."),
-        (".basket [1-5] | 🏀", "Basketball mini game."),
-        (".ball [1-5] | ⚽️", "Football mini game."),
+        (".dart [1-6] | 🎯", "Dart game."),
+        (".dice [1-6] | 🎲", "Dice game."),
+        (".basket [1-5] | 🏀", "Basketball."),
+        (".ball [1-5] | ⚽️", "Football."),
         (".slot [1-64] | 🎰", "Slot machine."),
-        (".gym", "Simple animated gym."),
-        (".truthdare", "Open Truth/Dare menu."),
-        (".dare", "Generate a light dare."),
-        (".truth", "Generate a respectful truth question."),
-    ],
-    "Fake Interactions": [
-        (".typing [seconds]", "Show typing without sending."),
-        (".upload_photo [seconds]", "Show uploading a photo."),
-        (".upload_file [seconds]", "Show uploading a file."),
-        (".upload_video [seconds]", "Show uploading a video."),
-        (".upload_audio [seconds]", "Show uploading an audio."),
-        (".record_video [seconds]", "Show recording a video."),
-        (".record_audio [seconds]", "Show recording an audio."),
-        (".choose_sticker [seconds]", "Show choosing a sticker."),
-        (".game_play [seconds]", "Show playing a game."),
+        (".gym", "Gym animation."),
+        (".truthdare", "Truth/Dare menu."),
+        (".dare", "Random dare."),
+        (".truth", "Random truth."),
     ],
     "Media & Tools": [
-        (".youtube <query>", "Fetch first matching video from YouTube."),
-        (".sticker", "Create a sticker from an image/sticker (reply to media)."),
-        (".sticker_info", "Get sticker pack info."),
-        (".tiktok <url>", "Download TikTok video without watermark."),
+        (".youtube <query>", "Find first YouTube match."),
+        (".sticker", "Create a sticker (reply)."),
+        (".sticker_info", "Sticker pack info."),
+        (".tiktok <url>", "TikTok video without watermark."),
     ],
     "AI": [
-        (".ai <text/reply>", "Smart brief answer—example: .ai how are you → 'I’m fine!'"),
-        (".translate <lang> [text/reply]", "Smart translation via Google."),
-        (".detect_lang [text/reply]", "Detect text language automatically."),
-        (".summarize [sentences] (reply)", "Quick summary to N sentences."),
-        (".anime <description>", "Suggest anime title from a brief description."),
-    ],
-    "Hunting (Usernames)": [
-        (".hunt <pattern>", "Start username hunting according to pattern."),
-        (".hunt_status", "Show hunting status and attempts."),
-        (".hunt_stop", "Stop current hunting process."),
-    ],
-    "Monitoring": [
-        (".watch <@user>", "Watch user changes: name/photo/bio."),
-        (".unwatch <@user>", "Stop watching user."),
-    ],
-    "Profile": [
-        (".time_name_on", "Enable time in first name."),
-        (".time_name_off", "Disable time and clean name."),
-        (".name (text)", "Set first name with current time."),
-        (".impersonate", "Impersonate replied user (name/bio/photo)."),
-        (".restore", "Restore original name/bio/photo."),
-    ],
-    "Private Protection & Warnings": [
-        (".private_protect", "Toggle private protection against bad words."),
-        (".accept", "Accept replied user (no warnings)."),
-        (".unaccept", "Remove acceptance for replied user."),
-        (".clear_warnings", "Clear replied user warnings."),
-        (".my_warnings", "Show your warnings count."),
-        (".set_warning_template", "Change warning message (reply to text)."),
-        (".show_template", "Show current warning template."),
-        (".set_max_warnings <n>", "Set max warnings limit."),
-        (".banned_list", "Show banned users list."),
-        (".clear_banned", "Clear all banned users."),
-    ],
-    "Shortcuts & Memes": [
-        (".shortcut + <key>", "Save a shortcut (reply to message)."),
-        (".del_shortcut + <key>", "Delete a saved shortcut."),
-        (".shortcuts", "List all saved shortcuts."),
-        (".memes <key> <url>", "Add meme fingerprint as a link."),
-        (".memes_save <key>", "Save meme from replied media."),
-        (".memes_get <key>", "Send meme file if media or show link."),
-        (".memes_show <key>", "Show meme linked to key."),
-        (".memes_list", "Show meme keys list."),
-        ("remove <key>", "Delete meme fingerprint."),
-        (".memes_clear", "Delete all memes."),
-    ],
-    "Auto Publishing": [
-        (".repeat <sec> <count> [text]", "Repeated publishing; can reply to photo/album."),
-        (".rep <sec> <count> [text]", "Shortcut for repeat."),
-        (".publish <sec> <count> [text]", "Another shortcut for repeat."),
-        (".stop_auto_publish", "Stop all active publishing tasks."),
+        (".ai <text/reply>", "Smart brief answer."),
+        (".translate <lang> [text/reply]", "Smart translation."),
+        (".detect_lang [text/reply]", "Detect language."),
+        (".summarize [n] (reply)", "Summarize to N sentences."),
+        (".anime <description>", "Suggest anime title."),
     ],
     "Channels & Groups Tools": [
-        (".list_all_channels", "List public/private channels."),
-        (".list_admin_channels", "List channels you admin."),
-        (".list_my_channels", "List channels you own."),
-        (".list_all_groups", "List all groups (normal/mega)."),
-        (".list_admin_groups", "List groups you admin."),
-        (".list_my_groups", "List groups you own."),
-        (".inspect_group [reply/ID]", "Advanced info about group/channel."),
+        (".list_all_channels", "List channels."),
+        (".list_admin_channels", "Channels you admin."),
+        (".list_my_channels", "Channels you own."),
+        (".list_all_groups", "List groups."),
+        (".list_admin_groups", "Groups you admin."),
+        (".list_my_groups", "Groups you own."),
+        (".inspect_group [reply/ID]", "Inspect group/channel."),
     ],
     "Administration": [
-        (".ban [reply/ID/@]", "Ban a user from the group."),
-        (".kick [reply/ID/@]", "Kick a user from the group."),
-        (".restrict [reply/ID/@]", "Restrict user from sending messages."),
+        (".ban [reply/ID/@]", "Ban user."),
+        (".kick [reply/ID/@]", "Kick user."),
+        (".restrict [reply/ID/@]", "Restrict user."),
         (".unban [reply/ID/@]", "Unban user."),
         (".unrestrict [reply/ID/@]", "Unrestrict user."),
-        (".admin_log", "Show last 25 admin actions with reasons."),
+        (".admin_log", "Last 25 admin actions."),
     ],
 }
 
