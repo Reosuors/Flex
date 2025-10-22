@@ -261,8 +261,12 @@ COMMANDS_EN = {
 }
 
 def build_section(title, items):
-    lines = [f"• {cmd}\n  ⤷ {desc}" for cmd, desc in items]
-    return f"【 {title} 】\n" + "\n".join(lines)
+    # اجعل كل أمر قابلاً للنسخ بوضعه داخل تنسيق أحادي `code`
+    # Example:
+    # .<\command>`
+    #   ⤷ description
+    lines = [f"`{cmd}`\n  ⤷ {desc}" for cmd, desc in items]
+    return f"【 {titles)
 
 def build_help_text(commands, header, footer):
     parts = [header]
