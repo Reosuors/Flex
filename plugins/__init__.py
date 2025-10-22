@@ -26,6 +26,7 @@ def load_all():
         "plugins.temp_mail",
         "plugins.fake_interactions",
         "plugins.command_aliases",
+        "plugins.check",
         # Removed limits by request:
         # "plugins.member_limit",
         # "plugins.command_limit",
