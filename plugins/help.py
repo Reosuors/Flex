@@ -327,12 +327,19 @@ async def show_commands(event):
     header = HEADER_AR if lang == "AR" else HEADER_EN
     footer = FOOTER_AR if lang == "AR" else FOOTER_EN
 
-    # عدد الأقسام وترقيمها
+    # عدد الأقسام وترقيمها + تلميح مناسب للغة
     sections = list(commands.keys())
-    numbered_header = header + "\n".join(
-        [f"【 {title} 】 — اكتب .م{idx+1} لعرض أوامر هذا القسم"
-         for idx, title in enumerate(sections)]
-    ) + "\n" + SEPARATOR
+    if lang == "AR":
+        numbered_lines = [
+            f"【 {title} 】 — اكتب .م{idx+1} لعرض أوامر هذا القسم"
+            for idx, title in enumerate(sections)
+        ]
+    else:
+        numbered_lines = [
+            f"【 {title} 】 — type .c{idx+1} to view this section"
+            for idx, title in enumerate(sections)
+        ]
+    numbered_header = header + "\n".join(numbered_lines) + "\n" + SEPARATOR
 
     await event.edit("جارٍ إعداد قائمة الأوامر..." if lang == "AR" else "Preparing commands list...")
     # عرض القائمة الكاملة كالسابق
