@@ -326,14 +326,26 @@ async def show_commands(event):
     commands = COMMANDS_AR if lang == "AR" else COMMANDS_EN
     header = HEADER_AR if lang == "AR" else HEADER_EN
     footer = FOOTER_AR if lang == "AR" else FOOTER_EN
+
+    # عدد الأقسام وترقيمها
+    sections = list(commands.keys())
+    numbered_header = header + "\n".join(
+        [f"【 {title} 】 — اكتب .م{idx+1} لعرض أوامر هذا القسم"
+         for idx, title in enumerate(sections)]
+    ) + "\n" + SEPARATOR
+
     await event.edit("جارٍ إعداد قائمة الأوامر..." if lang == "AR" else "Preparing commands list...")
-    text = build_help_text(commands, header, footer)
-    await send_chunked(event, text)
+    # عرض القائمة الكاملة كالسابق
+    full_text = [numbered_header]
+    for title, items in commands.items():
+        full_text.append(build_section(title, items))
+        full_text.append(SEPARATOR)
+    full_text.append(footer)
+    await send_chunked(event, "\n".join(full_text))
 
 # قائمة المساعدة التفاعلية
 @client.on(events.NewMessage(outgoing=True, pattern=r"\.(?:المساعدة|مساعدة|assist)$"))
 async def show_help_menu(event):
-    # العربية لأوامر المساعدة العربية، الإنجليزية لأمر assist
     trigger = (event.pattern_match.group(0) or "").strip()
     lang = "EN" if "assist" in trigger else "AR"
     commands = COMMANDS_AR if lang == "AR" else COMMANDS_EN
@@ -344,6 +356,24 @@ async def show_help_menu(event):
     else:
         await event.edit(build_menu_text(lang))
         await event.respond("BOT_TOKEN غير مضبوط؛ سيتم عرض القائمة بدون أزرار." if lang == "AR" else "BOT_TOKEN not set; showing menu without buttons.")
+
+# أمر عرض قسم محدد عبر .م1 و .م٢ ... إلخ (يدعم الأرقام العربية والإنجليزية)
+def eastern_to_western_digits(s: str) -> str:
+    trans = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+    return s.translate(trans)
+
+@client.on(events.NewMessage(outgoing=True, pattern=r"\.م([0-9٠-٩]+)$"))
+async def show_ar_section_by_number(event):
+    num_str = event.pattern_match.group(1)
+    num = int(eastern_to_western_digits(num_str))
+    sections = list(COMMANDS_AR.keys())
+    if not (1 <= num <= len(sections)):
+        await event.edit("رقم القسم غير صالح.")
+        return
+    idx = num - 1
+    title = sections[idx]
+    text = HEADER_AR + build_section(title, COMMANDS_AR.get(title, [])) + FOOTER_AR
+    await send_chunked(event, text)
 
 # معالجات الأزرار عبر البوت
 if bot is not None:
