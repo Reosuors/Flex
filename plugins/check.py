@@ -12,4 +12,10 @@ async def check_source_ar(event):
 
 @client.on(events.NewMessage(pattern=r"\.check"))
 async def check_source_en(event):
-    await event.reply("Flex source is running ✅ Enjoy")
+    # Send English image if available, otherwise fallback to text
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    img_en_path = os.path.join(project_root, "flex_en.jpg")
+    if os.path.exists(img_en_path):
+        await client.send_file(event.chat_id, file=img_en_path, caption="Flex source is running ✅ Enjoy")
+    else:
+        await event.reply("Flex source is running ✅ Enjoy")
