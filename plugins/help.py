@@ -376,6 +376,21 @@ async def show_ar_section_by_number(event):
     await send_chunked(event, text)
 
 # معالجات الأزرار عبر البوت
+
+# أمر عرض قسم إنجليزي عبر .c1 و .c2 ... إلخ
+@client.on(events.NewMessage(outgoing=True, pattern=r"\.c([0-9]+)$"))
+async def show_en_section_by_number(event):
+    num_str = event.pattern_match.group(1)
+    num = int(num_str)
+    sections = list(COMMANDS_EN.keys())
+    if not (1 <= num <= len(sections)):
+        await event.edit("Invalid section number.")
+        return
+    idx = num - 1
+    title = sections[idx]
+    text = HEADER_EN + build_section(title, COMMANDS_EN.get(title, [])) + FOOTER_EN
+    await send_chunked(event, text)
+
 if bot is not None:
     @bot.on(events.CallbackQuery)
     async def help_callback(event):
