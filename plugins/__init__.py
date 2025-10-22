@@ -2,7 +2,6 @@
 # We progressively split features out of `modified.py`.
 import importlib
 
-
 def load_all():
     # Load split plugins
     base = [
@@ -26,9 +25,23 @@ def load_all():
         "plugins.temp_mail",
         "plugins.fake_interactions",
         "plugins.command_aliases",
+        "plugins.check",
+        "plugins.onboarding",
         # Removed limits by request:
         # "plugins.member_limit",
         # "plugins.command_limit",
     ]
     for module in base:
         importlib.import_module(module)
+
+async def run_startup():
+    """
+    Run any startup tasks provided by plugins after client.start().
+    """
+    try:
+        mod = importlib.import_module("plugins.onboarding")
+        if hasattr(mod, "run_startup"):
+            await mod.run_startup()
+    except Exception:
+        # Ignore startup errors to not block the client
+        pass
