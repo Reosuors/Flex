@@ -15,7 +15,8 @@ YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY', 'AIzaSyBfb8a-Ug_YQFrpWKeTc88
 YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search'
 
 
-@client.on(events.NewMessage(from_users='me', pattern=r'\.يوتيوب (.+)'))
+@client.on(events.NewMessage(from_users='me', pattern=r'^\.يوتيوب (.+)))
+@client.on(events.NewMessage(from_users='me', pattern=r'^\.youtube (.+)))
 async def youtube_search(event):
     await event.delete()
     query = event.pattern_match.group(1)
@@ -45,7 +46,8 @@ KANGING_STR = [
 ]
 
 
-@client.on(events.NewMessage(pattern=r'\.ملصق(?:\s|$)([\s\S]*)'))
+@client.on(events.NewMessage(pattern=r'^\.ملصق(?:\s|$)([\s\S]*)'))
+@client.on(events.NewMessage(pattern=r'^\.sticker(?:\s|$)([\s\S]*)'))
 async def create_sticker(event):
     try:
         reply = await event.get_reply_message()
@@ -100,7 +102,8 @@ async def create_sticker(event):
         await event.edit(f"⪼ حدث خطأ: {str(e)}")
 
 
-@client.on(events.NewMessage(pattern=r'\.معلومات الملصق))
+@client.on(events.NewMessage(pattern=r'^\.معلومات الملصق))
+@client.on(events.NewMessage(pattern=r'^\.sticker_info))
 async def sticker_info(event):
     try:
         reply = await event.get_reply_message()
@@ -127,7 +130,8 @@ async def sticker_info(event):
 
 
 # TikTok downloader (best-effort, as original relied on external API)
-@client.on(events.NewMessage(pattern=r'\.تك ?(.+)?'))
+@client.on(events.NewMessage(pattern=r'^\.تك ?(.+)?))
+@client.on(events.NewMessage(pattern=r'^\.tiktok ?(.+)?))
 async def tiktok_dl(event):
     ms = (event.pattern_match.group(1) or "").strip()
     if not (("https://tiktok.com/" in ms) or ("https://vm.tiktok.com/" in ms)):
@@ -166,7 +170,8 @@ async def tiktok_dl(event):
 
 
 # صورة: ضغط سريع وجودة قابلة للتعديل
-@client.on(events.NewMessage(pattern=r'\.ضغط_صوره(?:\s(\d{1,2}))?))
+@client.on(events.NewMessage(pattern=r'^\.ضغط_صوره(?:\s(\d{1,2}))?))
+@client.on(events.NewMessage(pattern=r'^\.compress_image(?:\s(\d{1,2}))?))
 async def compress_image(event):
     quality_raw = event.pattern_match.group(1)
     quality = int(quality_raw) if quality_raw else 75

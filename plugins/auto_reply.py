@@ -29,9 +29,11 @@ def _save_data(data):
 DATA = _load_data()
 
 
-@client.on(events.NewMessage(pattern=r"\.اضف رد \+ (.+) \+ (.+)"))
+@client.on(events.NewMessage(pattern=r"^\.اضف رد \+ (.+) \+ (.+)$"))
+@client.on(events.NewMessage(pattern=r"^\.add_reply \+ (.+) \+ (.+)$"))
 async def add_response(event):
     try:
+        # split by ' + ' keeps compatibility AR/EN
         _, key, value = event.raw_text.split(" + ", 2)
         key = key.strip()
         value = value.strip()
@@ -40,10 +42,11 @@ async def add_response(event):
         _save_data(DATA)
         await event.edit(f"⎙ تم إضافة الرد بنجاح:\n**{key} → {value}** (الأولوية: {DATA['priorities'][key]})")
     except ValueError:
-        await event.edit("⎙ الصيغة غير صحيحة. استخدم: `.اضف رد + الكلمة + الرد`")
+        await event.edit("⎙ الصيغة غير صحيحة. استخدم: `.اضف رد + الكلمة + الرد` | `.add_reply + KEY + VALUE`")
 
 
-@client.on(events.NewMessage(pattern=r"\.أولوية الرد (\S+) (\d+)"))
+@client.on(events.NewMessage(pattern=r"^\.أولوية الرد (\S+) (\d+)$"))
+@client.on(events.NewMessage(pattern=r"^\.reply_priority (\S+) (\d+)$"))
 async def set_priority(event):
     key = event.pattern_match.group(1)
     pr = int(event.pattern_match.group(2))
@@ -55,7 +58,8 @@ async def set_priority(event):
     await event.edit(f"✓ تم تعيين أولوية الرد للكلمة '{key}' إلى {pr}.")
 
 
-@client.on(events.NewMessage(pattern=r"\.الردود"))
+@client.on(events.NewMessage(pattern=r"^\.الردود$"))
+@client.on(events.NewMessage(pattern=r"^\.replies$"))
 async def list_responses(event):
     responses = DATA.get("responses", {})
     if responses:
@@ -69,7 +73,8 @@ async def list_responses(event):
     await event.reply(msg)
 
 
-@client.on(events.NewMessage(pattern=r"\.تفعيل هنا"))
+@client.on(events.NewMessage(pattern=r"^\.تفعيل هنا$"))
+@client.on(events.NewMessage(pattern=r"^\.enable_here$"))
 async def enable_group(event):
     chat_id = event.chat_id
     if chat_id not in DATA["enabled_groups"]:
@@ -78,7 +83,8 @@ async def enable_group(event):
     await event.edit("**⎙ تم تفعيل الردود التلقائية في هذه المجموعة.**")
 
 
-@client.on(events.NewMessage(pattern=r"\.تعطيل هنا"))
+@client.on(events.NewMessage(pattern=r"^\.تعطيل هنا$"))
+@client.on(events.NewMessage(pattern=r"^\.disable_here$"))
 async def disable_group(event):
     chat_id = event.chat_id
     if chat_id in DATA["enabled_groups"]:
