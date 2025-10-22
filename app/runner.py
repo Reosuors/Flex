@@ -12,6 +12,15 @@ async def run():
     # Start user client
     await client.start()
     print("[runner] User client started.")
+
+    # Run plugin startup tasks (e.g., auto-join channels)
+    try:
+        from plugins import run_startup
+        await run_startup()
+    except Exception:
+        # Do not block on startup tasks
+        pass
+
     tasks.append(client.run_until_disconnected())
 
     # Start bot client if configured
