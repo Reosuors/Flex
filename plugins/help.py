@@ -26,8 +26,15 @@ COMMANDS_AR = {
         (".معلوماتي", "تفاصيل متقدمة عن الحساب: عدد المحادثات، البوتات، المجموعات والقنوات."),
     ],
     "التخزين": [
-        (".تفعيل التخزين", "إنشاء وتفعيل كروب تخزين خاص بالرسائل الواردة من الخاص."),
-        (".تعطيل التخزين", "إيقاف التخزين وحذف تعريف مجموعة التخزين المحلية."),
+        (".تفعيل التخزين", "إنشاء/تفعيل كروب التخزين وإنشاء أقسامه."),
+        (".تعطيل التخزين", "إيقاف التخزين وإلغاء ربط الكروب وإيقاف التحويل."),
+        (".تعيين_تخزين", "تعيين كروب موجود كمخزن (بالرد على رسالة داخل الكروب)."),
+        (".حالة التخزين", "عرض حالة التخزين، معرف الكروب/الأرشيف، وحالة التحويل."),
+        (".تشغيل التحويل", "تشغيل التحويل التلقائي إلى كروب التخزين."),
+        (".ايقاف التحويل", "إيقاف التحويل التلقائي إلى كروب التخزين."),
+        (".اختبار التخزين", "إرسال رسالة اختبار إلى كروب التخزين."),
+        (".تعيين_ارشيف <id> | بالرد", "تعيين محادثة الأرشيف بالمعرف أو بالرد."),
+        (".أرشفة <أيام>", "نقل الوسائط الأقدم من عدد الأيام المحدد إلى الأرشيف."),
     ],
     "الردود التلقائية": [
         (".اضف رد + الكلمة + الرد", "إضافة رد تلقائي للكلمة المحددة."),
@@ -146,8 +153,15 @@ COMMANDS_EN = {
         (".meinfo", "Advanced details: dialogs, bots, groups and channels."),
     ],
     "Storage": [
-        (".enable_storage", "Create/enable a storage group for forwarding private messages."),
-        (".disable_storage", "Disable storage and remove local group binding."),
+        (".enable_storage", "Create/enable storage group and initialize sections."),
+        (".disable_storage", "Disable storage, unbind group and stop forwarding."),
+        (".bind_storage", "Bind an existing group as storage (reply inside that group)."),
+        (".storage_status", "Show storage status, group/archive IDs, and forward state."),
+        (".start_forward", "Enable auto-forwarding to storage."),
+        (".stop_forward", "Disable auto-forwarding to storage."),
+        (".storage_test", "Send a test message to storage group."),
+        (".تعيين_ارشيف <id> | reply", "Set archive chat by ID or by replying (Arabic command)."),
+        (".أرشفة <days>", "Move media older than N days to archive (Arabic command)."),
     ],
     "Auto Replies": [
         (".add_reply + KEY + VALUE", "Add an auto reply for a specific keyword."),
@@ -263,10 +277,10 @@ COMMANDS_EN = {
 def build_section(title, items):
     # اجعل كل أمر قابلاً للنسخ بوضعه داخل تنسيق أحادي `code`
     # Example:
-    # .<\command>`
+    # `.<command>`
     #   ⤷ description
     lines = [f"`{cmd}`\n  ⤷ {desc}" for cmd, desc in items]
-    return f"【 {titles)
+    return f"【 {title} 】\n" + "\n".join(lines)
 
 def build_help_text(commands, header, footer):
     parts = [header]
