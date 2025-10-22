@@ -8,6 +8,9 @@ ALIASES = {
     "meinfo": "معلوماتي",
     "dashboard": "لوحة",
 
+    # Health check
+    "check": "فحص",
+
     # Storage
     "enable_storage": "تفعيل التخزين",
     "disable_storage": "تعطيل التخزين",
