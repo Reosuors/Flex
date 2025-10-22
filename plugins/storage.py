@@ -1,6 +1,7 @@
 import os
 import pickle
 import asyncio
+import json
 from datetime import datetime, timedelta
 from telethon import events
 from telethon.tl.functions.channels import CreateChannelRequest, EditPhotoRequest
@@ -10,6 +11,7 @@ from core.client import client
 
 GROUP_ID_FILE = 'group_id.pkl'
 ARCHIVE_ID_FILE = 'archive_id.pkl'
+STORAGE_CONF_FILE = 'storage_config.json'
 STORAGE_GROUP_TITLE = "كروب التخزين"
 STORAGE_GROUP_BIO = "كروب التخزين المخصص من سورس flex"
 STORAGE_PHOTO_NAME = "flex.jpg"
@@ -37,6 +39,19 @@ def _load_archive_id():
 def _save_archive_id(chat_id: int):
     _save_id(ARCHIVE_ID_FILE, chat_id)
 
+def _load_conf():
+    if os.path.exists(STORAGE_CONF_FILE):
+        try:
+            with open(STORAGE_CONF_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"forward_enabled": True}
+
+def _save_conf(conf: dict):
+    with open(STORAGE_CONF_FILE, 'w', encoding='utf-8') as f:
+        json.dump(conf, f, ensure_ascii=False, indent=2)
+
 
 async def _ensure_storage_group(event):
     group_id = _load_group_id()
@@ -45,7 +60,6 @@ async def _ensure_storage_group(event):
             await client.get_entity(group_id)
             return group_id
         except (ValueError, Exception):
-            # stale id, recreate
             try:
                 os.remove(GROUP_ID_FILE)
             except Exception:
@@ -80,24 +94,109 @@ async def _ensure_storage_group(event):
     return group_id
 
 
+# Enable storage (AR/EN)
 @client.on(events.NewMessage(from_users='me', pattern=r'\.تفعيل التخزين))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.enable_storage))
 async def enable_storage(event):
     await event.delete()
     try:
-        if event.is_private:
-            await _ensure_storage_group(event)
-        else:
-            await event.reply("**⎙ يفضل تشغيل الأمر من الخاص. سيتم التفعيل وإنشاء الكروب تلقائيًا.**")
-            await _ensure_storage_group(event)
+        gid = await _ensure_storage_group(event)
+        conf = _load_conf()
+        conf["forward_enabled"] = True
+        _save_conf(conf)
+        await event.respond(f"**⎙ التخزين مُفعّل. المعرف: {gid}**")
     except Exception as e:
-        await event.reply(f"⎙ حدث خطأ: {str(e)}")
+        await event.respond(f"⎙ حدث خطأ: {str(e)}")
+
+
+# Disable storage (AR/EN)
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تعطيل التخزين))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.disable_storage))
+async def disable_storage(event):
+    await event.delete()
+    try:
+        if os.path.exists(GROUP_ID_FILE):
+            os.remove(GROUP_ID_FILE)
+        conf = _load_conf()
+        conf["forward_enabled"] = False
+        _save_conf(conf)
+        await event.respond("**⎙ تم تعطيل التخزين وإيقاف التحويل.**")
+    except Exception as e:
+        await event.respond(f"⎙ حدث خطأ: {str(e)}")
+
+
+# Bind existing chat as storage (by reply) (AR/EN)
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تعيين_تخزين))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.bind_storage))
+async def bind_storage(event):
+    if not event.is_reply:
+        await event.edit("**⎙ يجب الرد على رسالة داخل الكروب المطلوب تعيينه كالتخزين.**")
+        return
+    reply = await event.get_reply_message()
+    chat_id = reply.chat_id
+    _save_group_id(chat_id)
+    conf = _load_conf()
+    conf["forward_enabled"] = True
+    _save_conf(conf)
+    await event.edit(f"**⎙ تم تعيين هذا الكروب كمخزن. المعرف: {chat_id}**")
+
+
+# Storage status (AR/EN)
+@client.on(events.NewMessage(from_users='me', pattern=r'\.حالة التخزين))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.storage_status))
+async def storage_status(event):
+    gid = _load_group_id()
+    aid = _load_archive_id()
+    conf = _load_conf()
+    status = "مفعل ✅" if conf.get("forward_enabled", True) and gid else "معطل ⛔️"
+    text = (
+        f"**⎙ حالة التخزين:** {status}\n"
+        f"**⎙ معرف الكروب:** {gid if gid else 'غير معيّن'}\n"
+        f"**⎙ معرف الأرشيف:** {aid if aid else 'غير معيّن'}\n"
+        f"**⎙ التحويل التلقائي:** {'ON' if conf.get('forward_enabled', True) else 'OFF'}"
+    )
+    await event.edit(text)
+
+
+# Toggle forwarding only (AR/EN)
+@client.on(events.NewMessage(from_users='me', pattern=r'\.ايقاف التحويل))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.stop_forward))
+async def stop_forward(event):
+    conf = _load_conf()
+    conf["forward_enabled"] = False
+    _save_conf(conf)
+    await event.edit("**⎙ تم إيقاف التحويل التلقائي إلى كروب التخزين.**")
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تشغيل التحويل))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.start_forward))
+async def start_forward(event):
+    conf = _load_conf()
+    conf["forward_enabled"] = True
+    _save_conf(conf)
+    await event.edit("**⎙ تم تشغيل التحويل التلقائي إلى كروب التخزين.**")
+
+
+# Test storage (AR/EN)
+@client.on(events.NewMessage(from_users='me', pattern=r'\.اختبار التخزين))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.storage_test))
+async def storage_test(event):
+    gid = _load_group_id()
+    if not gid:
+        await event.edit("**⎙ لا يوجد كروب تخزين معيّن. فعل التخزين أولاً.**")
+        return
+    try:
+        await client.send_message(gid, "⎙ اختبار التحويل: الرسالة وصلت بنجاح.")
+        await event.edit("**⎙ تم إرسال رسالة اختبار إلى كروب التخزين.**")
+    except Exception as e:
+        await event.edit(f"**⎙ فشل الاختبار:** {e}")
 
 
 @client.on(events.NewMessage(incoming=True))
 async def forward_private_to_storage(event):
-    # Forward incoming private messages to storage group if configured
+    # Forward incoming private messages to storage group if configured and forwarding enabled
     group_id = _load_group_id()
-    if not group_id:
+    conf = _load_conf()
+    if not group_id or not conf.get("forward_enabled", True):
         return
 
     if event.is_private:
@@ -107,27 +206,22 @@ async def forward_private_to_storage(event):
                 return
         except Exception:
             pass
-        await client.forward_messages(group_id, event.message)
+        try:
+            await client.forward_messages(group_id, event.message)
+        except Exception:
+            return
         # Optional: add simple meta
         try:
             sender = await event.get_sender()
-            meta = f"#التــاكــات\n\n⌔┊المستخدم : <code>{sender.first_name}</code>\n⌔┊الرسالة : {(event.message.message or '')}"
+            meta = (
+                f"#التــاكــات\n\n"
+                f"⌔┊المستخدم : <code>{(sender.first_name or '')}</code>\n"
+                f"⌔┊المعرف : <code>{sender.id}</code>\n"
+                f"⌔┊الرسالة : {(event.message.message or '')}"
+            )
             await client.send_message(group_id, meta, parse_mode="html", link_preview=False)
         except Exception:
             pass
-
-
-@client.on(events.NewMessage(from_users='me', pattern=r'\.تعطيل التخزين))
-async def disable_storage(event):
-    await event.delete()
-    try:
-        if os.path.exists(GROUP_ID_FILE):
-            os.remove(GROUP_ID_FILE)
-            await event.reply("**⎙ تم تعطيل التخزين بنجاح.**")
-        else:
-            await event.reply("**⎙ التخزين غير مفعل بالفعل.**")
-    except Exception as e:
-        await event.reply(f"⎙ حدث خطأ: {str(e)}")
 
 
 # إعداد الأرشيف الذكي + أرشفة الوسائط الأقدم
