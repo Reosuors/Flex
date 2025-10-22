@@ -160,8 +160,8 @@ COMMANDS_EN = {
         (".start_forward", "Enable auto-forwarding to storage."),
         (".stop_forward", "Disable auto-forwarding to storage."),
         (".storage_test", "Send a test message to storage group."),
-        (".تعيين_ارشيف <id> | reply", "Set archive chat by ID or by replying (Arabic command)."),
-        (".أرشفة <days>", "Move media older than N days to archive (Arabic command)."),
+        (".set_archive <id> | reply", "Set archive chat by ID or by replying."),
+        (".archive <days>", "Move media older than N days from storage to archive."),
     ],
     "Auto Replies": [
         (".add_reply + KEY + VALUE", "Add an auto reply for a specific keyword."),
