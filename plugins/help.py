@@ -342,13 +342,11 @@ async def show_commands(event):
     numbered_header = header + "\n".join(numbered_lines) + "\n" + SEPARATOR
 
     await event.edit("جارٍ إعداد قائمة الأوامر..." if lang == "AR" else "Preparing commands list...")
-    # عرض القائمة الكاملة كالسابق
-    full_text = [numbered_header]
-    for title, items in commands.items():
-        full_text.append(build_section(title, items))
-        full_text.append(SEPARATOR)
-    full_text.append(footer)
-    await send_chunked(event, "\n".join(full_text))
+    # عرض الأقسام فقط بدون تفاصيل الأوامر
+    # العربية: استخدم .م1 لعرض أوامر القسم المحدد
+    # الإنجليزية: استخدم .c1 لعرض أوامر القسم المحدد
+    summary_text = numbered_header + footer
+    await send_chunked(event, summary_text)
 
 # قائمة المساعدة التفاعلية
 @client.on(events.NewMessage(outgoing=True, pattern=r"\.(?:المساعدة|مساعدة|assist)$"))
