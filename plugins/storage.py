@@ -26,6 +26,8 @@ SECTION_KEYS = {
     "voices": "قسم الصوتيات",
     "documents": "قسم الملفات",
     "stickers": "قسم الملصقات",
+    "links": "قسم الروابط",
+    "bots": "قسم رسائل البوتات",
     "others": "قسم أخرى"
 }
 
@@ -147,7 +149,13 @@ async def _ensure_section_headers(group_id: int):
 def _detect_section_key(msg) -> str:
     """
     يحاول تحديد القسم الأنسب بناءً على نوع الوسائط/الرسالة.
+    يعطي أولوية للروابط إذا كان نص الرسالة يحتوي على URLs.
     """
+    # روابط في النص؟
+    text = (getattr(msg, "message", None) or "") if hasattr(msg, "message") else ""
+    if text and ("http://" in text or "https://" in text or "t.me/" in text or "www." in text):
+        return "links"
+
     if getattr(msg, "media", None):
         media = msg.media
         # صور
@@ -298,14 +306,16 @@ async def forward_private_to_storage(event):
     if event.is_private:
         try:
             sender = await event.get_sender()
-            if getattr(sender, "bot", False):
-                return
         except Exception:
             return
 
-        # اختر القسم حسب نوع الوسائط: images/videos/voices/documents/stickers/others
-        media_key = _detect_section_key(event.message)
-        header_id = sections.get(media_key) or sections.get("others")
+        # إن كان المرسل بوت → إلى قسم البوتات
+        if getattr(sender, "bot", False):
+            header_id = sections.get("bots")
+        else:
+            # اختر القسم حسب نوع الوسائط: links/images/videos/voices/documents/stickers/others
+            media_key = _detect_section_key(event.message)
+            header_id = sections.get(media_key) or sections.get("others")
 
         try:
             if event.message.media:
@@ -330,9 +340,10 @@ async def forward_private_to_storage(event):
 
         # Add meta under the same header
         try:
+            source = "رسائل بوت" if getattr(sender, "bot", False) else "رسائل خاص"
             meta = (
-                f"— مصدر: رسائل خاص\n"
-                f"المرسل: <code>{(sender.first_name or '')}</code> | <code>{sender.id}</code>"
+                f"— مصدر: {source}\n"
+                f"المرسل: <code>{(getattr(sender, 'first_name', '') or '')}</code> | <code>{sender.id}</code>"
             )
             await client.send_message(group_id, meta, reply_to=header_id, parse_mode="html", link_preview=False)
         except Exception:
@@ -347,12 +358,20 @@ async def forward_private_to_storage(event):
             if not reply_msg or reply_msg.sender_id != me.id:
                 return
             sender = await event.get_sender()
-            if getattr(sender, "bot", False):
-                return
         except Exception:
             return
 
-        header_id = sections.get("group_replies")
+        # أولوية: رسائل البوتات -> قسم البوتات، وإلا إن كانت تحوي روابط -> قسم الروابط
+        if getattr(sender, "bot", False):
+            header_id = sections.get("bots")
+        else:
+            media_key = _detect_section_key(event.message)
+            # للردود في المجموعات، نفضّل قسم الروابط إن وُجدت روابط، وإلا نحفظها في قسم ردود المجموعة
+            if media_key == "links":
+                header_id = sections.get("links")
+            else:
+                header_id = sections.get("group_replies")
+
         try:
             if event.message.media:
                 await client.send_file(
@@ -377,10 +396,11 @@ async def forward_private_to_storage(event):
         # add meta
         try:
             chat = await event.get_chat()
+            kind = "رد بوت" if getattr(sender, "bot", False) else "رد ضمن مجموعة"
             meta = (
-                f"— مصدر: رد ضمن مجموعة\n"
+                f"— مصدر: {kind}\n"
                 f"المجموعة: <code>{getattr(chat, 'title', '') or 'Private/Unknown'}</code>\n"
-                f"المرسل: <code>{(sender.first_name or '')}</code> | <code>{sender.id}</code>\n"
+                f"المرسل: <code>{(getattr(sender, 'first_name', '') or '')}</code> | <code>{sender.id}</code>\n"
                 f"ردًا على: {(reply_msg.message or '')[:400]}"
             )
             await client.send_message(group_id, meta, reply_to=header_id, parse_mode="html", link_preview=False)
