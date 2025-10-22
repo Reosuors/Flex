@@ -130,6 +130,13 @@ COMMANDS_AR = {
         (".الغاء الحظر [reply/ID/@]", "إلغاء الحظر."),
         (".الغاء التقييد [reply/ID/@]", "إلغاء التقييد."),
     ],
+    "الفحص": [
+        (".فحص", "إرسال صورة الفحص العربية مع التعليق الافتراضي أو المخصص."),
+        (".تعيين صورة فحص عربي <رابط> | بالرد على صورة", "تعيين/حفظ صورة الفحص العربية (من رابط أو بالرد على وسائط)."),
+        (".تعيين صورة فحص انجليزي <رابط> | بالرد على صورة", "تعيين/حفظ صورة الفحص الإنجليزية (من رابط أو بالرد على وسائط)."),
+        (".مسح صورة فحص عربي", "مسح إعداد صورة الفحص العربية والرجوع للوضع الافتراضي."),
+        (".مسح صورة فحص انجليزي", "مسح إعداد صورة الفحص الإنجليزية والرجوع للوضع الافتراضي."),
+    ],
 }
 
 # الإنجليزية
@@ -174,6 +181,9 @@ COMMANDS_EN = {
         (".sticker", "Create a sticker from an image/sticker (reply to media)."),
         (".sticker_info", "Get sticker pack info."),
         (".tiktok <url>", "Download TikTok video without watermark."),
+        (".check", "Send English check image with default or custom caption."),
+        (".set_check_image ar|en <url> | reply to image", "Set/save check image (Arabic or English) from a URL or by replying to media."),
+        (".clear_check_image ar|en", "Clear the configured check image and revert to default."),
     ],
     "AI": [
         (".a <<text/reply>", "Smart brief answer—example: .ai how are you → 'I’m fine!'"),
@@ -242,6 +252,11 @@ COMMANDS_EN = {
         (".restrict [reply/ID/@]", "Restrict user from sending messages."),
         (".unban [reply/ID/@]", "Unban user."),
         (".unrestrict [reply/ID/@]", "Unrestrict user."),
+    ],
+    "Check": [
+        (".check", "Send English check image with default or custom caption."),
+        (".set_check_image ar|en <url> | reply to image", "Set/save check image (Arabic or English) from a URL or by replying to media."),
+        (".clear_check_image ar|en", "Clear the configured check image and revert to default."),
     ],
 }
 
@@ -545,6 +560,9 @@ COMMANDS_EN = {
         (".sticker", "Create a sticker from an image/sticker (reply)."),
         (".sticker_info", "Get sticker pack info."),
         (".tiktok <link>", "Download TikTok video without watermark."),
+        (".check", "Send English check image with default or custom caption."),
+        (".set_check_image ar|en <url> | reply to image", "Set/save check image (Arabic or English) from a URL or by replying to media."),
+        (".clear_check_image ar|en", "Clear the configured check image and revert to default."),
     ],
     "AI": [
         (".ai <text/reply>", "Smart short reply. Example: .ai how are you → 'Fine, thanks!'."),
