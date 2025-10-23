@@ -194,8 +194,8 @@ def _detect_section_key(msg) -> str:
 
 
 # Enable storage (AR/EN)
-@client.on(events.NewMessage(from_users='me', pattern=r'\.تفعيل التخزين))
-@client.on(events.NewMessage(from_users='me', pattern=r'\.enable_storage))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تفعيل التخزين'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.enable_storage'))
 async def enable_storage(event):
     await event.delete()
     try:
@@ -211,8 +211,8 @@ async def enable_storage(event):
 
 
 # Disable storage (AR/EN)
-@client.on(events.NewMessage(from_users='me', pattern=r'\.تعطيل التخزين))
-@client.on(events.NewMessage(from_users='me', pattern=r'\.disable_storage))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تعطيل التخزين'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.disable_storage'))
 async def disable_storage(event):
     await event.delete()
     try:
@@ -227,8 +227,8 @@ async def disable_storage(event):
 
 
 # Bind existing chat as storage (by reply) (AR/EN)
-@client.on(events.NewMessage(from_users='me', pattern=r'\.تعيين_تخزين))
-@client.on(events.NewMessage(from_users='me', pattern=r'\.bind_storage))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تعيين_تخزين'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.bind_storage'))
 async def bind_storage(event):
     if not event.is_reply:
         await event.edit("**⎙ يجب الرد على رسالة داخل الكروب المطلوب تعيينه كالتخزين.**")
@@ -245,8 +245,8 @@ async def bind_storage(event):
 
 
 # Storage status (AR/EN)
-@client.on(events.NewMessage(from_users='me', pattern=r'\.حالة التخزين))
-@client.on(events.NewMessage(from_users='me', pattern=r'\.storage_status))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.حالة التخزين'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.storage_status'))
 async def storage_status(event):
     gid = _load_group_id()
     aid = _load_archive_id()
@@ -262,12 +262,26 @@ async def storage_status(event):
 
 
 # Toggle forwarding only (AR/EN)
-@client.on(events.NewMessage(from_users='me', pattern=r'\.ايقاف التحويل
+@client.on(events.NewMessage(from_users='me', pattern=r'\.ايقاف التحويل'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.stop_forward'))
+async def stop_forward(event):
+    conf = _load_conf()
+    conf["forward_enabled"] = False
+    _save_conf(conf)
+    await event.edit("**⎙ تم إيقاف التحويل التلقائي إلى كروب التخزين.**")
+
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تشغيل التحويل'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.start_forward'))
+async def start_forward(event):
+    conf = _load_conf()
+    conf["forward_enabled"] = True
+    _save_conf(conf)
+    await event.edit("**⎙ تم تشغيل التحويل التلقائي إلى كروب التخزين.**")
 
 
 # Test storage (AR/EN)
-@client.on(events.NewMessage(from_users='me', pattern=r'\.اختبار التخزين))
-@client.on(events.NewMessage(from_users='me', pattern=r'\.storage_test))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.اختبار التخزين'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.storage_test'))
 async def storage_test(event):
     gid = _load_group_id()
     if not gid:
@@ -421,15 +435,15 @@ async def forward_private_to_storage(event):
 
 
 # إعداد الأرشيف الذكي + أرشفة الوسائط الأقدم
-@client.on(events.NewMessage(from_users='me', pattern=r'\.تعيين_ارشيف (\-?\d+)))
-@client.on(events.NewMessage(from_users='me', pattern=r'\.set_archive (\-?\d+)))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تعيين_ارشيف (\-?\d+)'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.set_archive (\-?\d+)'))
 async def set_archive(event):
     chat_id = int(event.pattern_match.group(1))
     _save_archive_id(chat_id)
     await event.edit(f"✓ تم تعيين معرف الأرشيف إلى: {chat_id}")
 
-@client.on(events.NewMessage(from_users='me', pattern=r'\.تعيين_ارشيف))
-@client.on(events.NewMessage(from_users='me', pattern=r'\.set_archive))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.تعيين_ارشيف'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.set_archive'))
 async def set_archive_by_reply(event):
     if event.is_reply:
         reply = await event.get_reply_message()
@@ -439,8 +453,8 @@ async def set_archive_by_reply(event):
     else:
         await event.edit("استخدم: .تعيين_ارشيف <id> / .set_archive <id> أو بالرد على محادثة الأرشيف.")
 
-@client.on(events.NewMessage(from_users='me', pattern=r'\.أرشفة (\d+)))
-@client.on(events.NewMessage(from_users='me', pattern=r'\.archive (\d+)))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.أرشفة (\d+)'))
+@client.on(events.NewMessage(from_users='me', pattern=r'\.archive (\d+)'))
 async def run_archive(event):
     group_id = _load_group_id()
     archive_id = _load_archive_id()
