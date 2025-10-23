@@ -80,6 +80,7 @@ COMMANDS_AR = {
         (".ترجم <لغة> [نص/بالرد]", "ترجمة ذكية عبر Google (gpytranslate/deep-translator)."),
         (".كشف_لغة [نص/بالرد]", "كشف لغة النص تلقائيًا."),
         (".تلخيص [عدد_الجمل] (بالرد)", "تلخيص سريع للنص إلى عدد جمل محدد."),
+        (".انمي <وصف>", "اقتراح اسم أنمي من وصف/قصة قصيرة."),
     ],
     "الصيد (يوزرات)": [
         (".صيد <نمط>", "بدء عملية صيد يوزر وفق النمط المحدد."),
@@ -169,10 +170,10 @@ COMMANDS_EN = {
         (".set_archive <id> | reply", "Set archive chat by ID or by replying."),
         (".archive <days>", "Move media older than N days from storage to archive."),
         (".storage_whitelist_add <chat_id>|reply", "Add a group to forwarding whitelist."),
-        (".storage_whitelist_remove <chat_id>|reply", "Remove a group from whitelist."),
+        (".storage_whitelist_remove <chat_id)|reply", "Remove a group from whitelist."),
         (".storage_whitelist_show", "Show current whitelist."),
-        (".storage_blacklist_add <chat_id>|reply", "Add a group to forwarding blacklist (ignored)."),
-        (".storage_blacklist_remove <chat_id>|reply", "Remove a group from blacklist."),
+        (".storage_blacklist_add <chat_id)|reply", "Add a group to forwarding blacklist (ignored)."),
+        (".storage_blacklist_remove <chat_id)|reply", "Remove a group from blacklist."),
         (".storage_blacklist_show", "Show current blacklist."),
     ],
     "Auto Replies": [
@@ -276,7 +277,7 @@ COMMANDS_EN = {
     "Administration": [
         (".ban [reply/ID/@]", "Ban a user from the group."),
         (".kick [reply/ID/@]", "Kick a user from the group."),
-        (".restrict [reply/ID/@]", "Restrict a user from sending messages."),
+        (".restrict [reply/ID/@]", "Restrict user from sending messages."),
         (".unban [reply/ID/@]", "Unban user."),
         (".unrestrict [reply/ID/@]", "Unrestrict user."),
     ],
@@ -411,8 +412,6 @@ async def show_ar_section_by_number(event):
     title = sections[idx]
     text = HEADER_AR + build_section(title, COMMANDS_AR.get(title, [])) + FOOTER_AR
     await send_chunked(event, text)
-
-# معالجات الأزرار عبر البوت
 
 # أمر عرض قسم إنجليزي عبر .c1 و .c2 ... إلخ
 @client.on(events.NewMessage(outgoing=True, pattern=r"\.c([0-9]+)$"))
