@@ -8,6 +8,11 @@ from telethon.tl.functions.channels import CreateChannelRequest, EditPhotoReques
 from telethon.tl.types import InputChatUploadedPhoto
 from core.client import client
 
+# Optional DB integration
+try:
+    from core import db as dbmod
+except Exception:
+    dbmod = None
 
 GROUP_ID_FILE = 'group_id.pkl'
 ARCHIVE_ID_FILE = 'archive_id.pkl'
@@ -31,51 +36,41 @@ SECTION_KEYS = {
     "others": "قسم أخرى"
 }
 
+def _use_db() -> bool:
+    return bool(dbmod and getattr(dbmod, "has_db", lambda: False)())
 
-def _load_id(path):
+# ---------- Local file helpers (fallback) ----------
+def _load_id_file(path):
     if os.path.exists(path):
         with open(path, 'rb') as f:
             return pickle.load(f)
     return None
 
-def _save_id(path, value):
+def _save_id_file(path, value):
     with open(path, 'wb') as f:
         pickle.dump(value, f)
 
-def _load_group_id():
-    return _load_id(GROUP_ID_FILE)
-
-def _save_group_id(group_id: int):
-    _save_id(GROUP_ID_FILE, group_id)
-
-def _load_archive_id():
-    return _load_id(ARCHIVE_ID_FILE)
-
-def _save_archive_id(chat_id: int):
-    _save_id(ARCHIVE_ID_FILE, chat_id)
-
-def _load_conf():
+def _load_conf_file():
     if os.path.exists(STORAGE_CONF_FILE):
         try:
             with open(STORAGE_CONF_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                # ضمان الحقول الجديدة
                 if "forward_enabled" not in data:
                     data["forward_enabled"] = True
                 if "whitelist" not in data:
-                    data["whitelist"] = []  # قائمة معرفات المجموعات المسموح بها
+                    data["whitelist"] = []
                 if "blacklist" not in data:
-                    data["blacklist"] = []  # قائمة معرفات المجموعات المحظورة
+                    data["blacklist"] = []
                 return data
         except Exception:
             pass
     return {"forward_enabled": True, "whitelist": [], "blacklist": []}
 
-def _save_conf(conf: dict):
+def _save_conf_file(conf: dict):
     with open(STORAGE_CONF_FILE, 'w', encoding='utf-8') as f:
         json.dump(conf, f, ensure_ascii=False, indent=2)
 
-def _load_sections():
+def _load_sections_file():
     if os.path.exists(STORAGE_SECTIONS_FILE):
         try:
             with open(STORAGE_SECTIONS_FILE, 'r', encoding='utf-8') as f:
@@ -84,11 +79,65 @@ def _load_sections():
             pass
     return {}
 
-def _save_sections(mapping: dict):
+def _save_sections_file(mapping: dict):
     with open(STORAGE_SECTIONS_FILE, 'w', encoding='utf-8') as f:
         json.dump(mapping, f, ensure_ascii=False, indent=2)
 
+# ---------- Unified getters/setters with DB fallback ----------
+def _load_group_id():
+    if _use_db():
+        return dbmod.get_state().get("group_id")
+    return _load_id_file(GROUP_ID_FILE)
 
+def _save_group_id(group_id: int):
+    if _use_db():
+        dbmod.update_state(group_id=group_id)
+    else:
+        _save_id_file(GROUP_ID_FILE, group_id)
+
+def _load_archive_id():
+    if _use_db():
+        return dbmod.get_state().get("archive_id")
+    return _load_id_file(ARCHIVE_ID_FILE)
+
+def _save_archive_id(chat_id: int):
+    if _use_db():
+        dbmod.update_state(archive_id=chat_id)
+    else:
+        _save_id_file(ARCHIVE_ID_FILE, chat_id)
+
+def _load_conf():
+    if _use_db():
+        state = dbmod.get_state()
+        return {
+            "forward_enabled": state.get("forward_enabled", True),
+            "whitelist": state.get("whitelist", []),
+            "blacklist": state.get("blacklist", []),
+        }
+    return _load_conf_file()
+
+def _save_conf(conf: dict):
+    if _use_db():
+        dbmod.update_state(
+            forward_enabled=conf.get("forward_enabled", True),
+            whitelist=conf.get("whitelist", []),
+            blacklist=conf.get("blacklist", []),
+        )
+    else:
+        _save_conf_file(conf)
+
+def _load_sections():
+    if _use_db():
+        return dbmod.get_sections()
+    return _load_sections_file()
+
+def _save_sections(mapping: dict):
+    if _use_db():
+        dbmod.save_sections(mapping)
+    else:
+        _save_sections_file(mapping)
+
+# ---------- Core logic ----------
 async def _ensure_storage_group(event):
     group_id = _load_group_id()
     if group_id:
@@ -96,10 +145,11 @@ async def _ensure_storage_group(event):
             await client.get_entity(group_id)
             return group_id
         except (ValueError, Exception):
-            try:
-                os.remove(GROUP_ID_FILE)
-            except Exception:
-                pass
+            if not _use_db():
+                try:
+                    os.remove(GROUP_ID_FILE)
+                except Exception:
+                    pass
 
     # Create new megagroup
     result = await client(CreateChannelRequest(
@@ -115,7 +165,7 @@ async def _ensure_storage_group(event):
         try:
             uploaded_photo = await client.upload_file(STORAGE_PHOTO_NAME)
             await client(EditPhotoRequest(
-                channel=channel,  # pass the channel entity, not the integer id
+                channel=channel,
                 photo=InputChatUploadedPhoto(
                     file=uploaded_photo,
                     video=None,
@@ -159,17 +209,14 @@ def _detect_section_key(msg) -> str:
     يحاول تحديد القسم الأنسب بناءً على نوع الوسائط/الرسالة.
     يعطي أولوية للروابط إذا كان نص الرسالة يحتوي على URLs.
     """
-    # روابط في النص؟
     text = (getattr(msg, "message", None) or "") if hasattr(msg, "message") else ""
     if text and ("http://" in text or "https://" in text or "t.me/" in text or "www." in text):
         return "links"
 
     if getattr(msg, "media", None):
         media = msg.media
-        # صور
         if getattr(media, "photo", None):
             return "images"
-        # مستندات (قد تكون فيديو/صوت/ملصق)
         doc = getattr(media, "document", None)
         if doc and getattr(doc, "mime_type", None):
             mt = doc.mime_type or ""
@@ -182,16 +229,13 @@ def _detect_section_key(msg) -> str:
             if "webp" in mt or "sticker" in mt:
                 return "stickers"
             return "documents"
-        # Voice/video notes
         if getattr(media, "voice", None):
             return "voices"
         if getattr(media, "video", None):
             return "videos"
         return "documents"
     else:
-        # نص فقط
         return "others"
-
 
 # Enable storage (AR/EN)
 @client.on(events.NewMessage(from_users='me', pattern=r'\.تفعيل التخزين'))
@@ -203,12 +247,10 @@ async def enable_storage(event):
         conf = _load_conf()
         conf["forward_enabled"] = True
         _save_conf(conf)
-        # تأمين رؤوس الأقسام
         await _ensure_section_headers(gid)
         await event.respond(f"**⎙ التخزين مُفعّل. المعرف: {gid}**")
     except Exception as e:
         await event.respond(f"⎙ حدث خطأ: {str(e)}")
-
 
 # Disable storage (AR/EN)
 @client.on(events.NewMessage(from_users='me', pattern=r'\.تعطيل التخزين'))
@@ -216,15 +258,12 @@ async def enable_storage(event):
 async def disable_storage(event):
     await event.delete()
     try:
-        if os.path.exists(GROUP_ID_FILE):
-            os.remove(GROUP_ID_FILE)
         conf = _load_conf()
         conf["forward_enabled"] = False
         _save_conf(conf)
         await event.respond("**⎙ تم تعطيل التخزين وإيقاف التحويل.**")
     except Exception as e:
         await event.respond(f"⎙ حدث خطأ: {str(e)}")
-
 
 # Bind existing chat as storage (by reply) (AR/EN)
 @client.on(events.NewMessage(from_users='me', pattern=r'\.تعيين_تخزين'))
@@ -239,10 +278,8 @@ async def bind_storage(event):
     conf = _load_conf()
     conf["forward_enabled"] = True
     _save_conf(conf)
-    # تأمين رؤوس الأقسام
     await _ensure_section_headers(chat_id)
     await event.edit(f"**⎙ تم تعيين هذا الكروب كمخزن. المعرف: {chat_id}**")
-
 
 # Storage status (AR/EN)
 @client.on(events.NewMessage(from_users='me', pattern=r'\.حالة التخزين'))
@@ -260,8 +297,7 @@ async def storage_status(event):
     )
     await event.edit(text)
 
-
-# Toggle forwarding only (AR/EN)
+# Toggle forwarding
 @client.on(events.NewMessage(from_users='me', pattern=r'\.ايقاف التحويل'))
 @client.on(events.NewMessage(from_users='me', pattern=r'\.stop_forward'))
 async def stop_forward(event):
@@ -278,8 +314,7 @@ async def start_forward(event):
     _save_conf(conf)
     await event.edit("**⎙ تم تشغيل التحويل التلقائي إلى كروب التخزين.**")
 
-
-# Test storage (AR/EN)
+# Test storage
 @client.on(events.NewMessage(from_users='me', pattern=r'\.اختبار التخزين'))
 @client.on(events.NewMessage(from_users='me', pattern=r'\.storage_test'))
 async def storage_test(event):
@@ -293,35 +328,27 @@ async def storage_test(event):
     except Exception as e:
         await event.edit(f"**⎙ فشل الاختبار:** {e}")
 
-
 @client.on(events.NewMessage(incoming=True))
 async def forward_private_to_storage(event):
     """
-    يرسل الرسائل إلى أقسام مخصصة داخل كروب التخزين:
-    - رسائل الخاص إلى الأقسام حسب النوع (صور/فيديو/صوت/ملفات/ملصقات/روابط/بوتات/أخرى)
-    - ردود على رسائلي في المجموعات إلى قسم "ردود المجموعة" أو "الروابط" أو "رسائل البوتات"
-    مع احترام قوائم السماح/الحظر للمجموعات في إعدادات التخزين.
+    توجيه رسائل الخاص والردود ضمن المجموعات إلى رؤوس الأقسام في كروب التخزين.
     """
     group_id = _load_group_id()
     conf = _load_conf()
     if not group_id or not conf.get("forward_enabled", True):
         return
 
-    # Ensure section headers exist
     sections = await _ensure_section_headers(group_id)
 
-    # Case 1: private messages
     if event.is_private:
         try:
             sender = await event.get_sender()
         except Exception:
             return
 
-        # إن كان المرسل بوت → إلى قسم البوتات
         if getattr(sender, "bot", False):
             header_id = sections.get("bots")
         else:
-            # اختر القسم حسب نوع الوسائط: links/images/videos/voices/documents/stickers/others
             media_key = _detect_section_key(event.message)
             header_id = sections.get(media_key) or sections.get("others")
 
@@ -346,7 +373,6 @@ async def forward_private_to_storage(event):
         except Exception:
             return
 
-        # Add meta under the same header
         try:
             source = "رسائل بوت" if getattr(sender, "bot", False) else "رسائل خاص"
             meta = (
@@ -358,15 +384,14 @@ async def forward_private_to_storage(event):
             pass
         return
 
-    # Case 2: replies to my messages in groups/channels
     if (event.is_group or event.is_channel) and event.is_reply:
-        # تحقق من قوائم السماح/الحظر للمجموعة
         try:
             chat = await event.get_chat()
             chat_id = getattr(chat, "id", None)
         except Exception:
             chat = None
             chat_id = None
+
         if chat_id is not None:
             bl = set(conf.get("blacklist", []))
             wl = set(conf.get("whitelist", []))
@@ -384,16 +409,11 @@ async def forward_private_to_storage(event):
         except Exception:
             return
 
-        # أولوية: رسائل البوتات -> قسم البوتات، وإلا إن كانت تحوي روابط -> قسم الروابط
         if getattr(sender, "bot", False):
             header_id = sections.get("bots")
         else:
             media_key = _detect_section_key(event.message)
-            # للردود في المجموعات، نفضّل قسم الروابط إن وُجدت روابط، وإلا نحفظها في قسم ردود المجموعة
-            if media_key == "links":
-                header_id = sections.get("links")
-            else:
-                header_id = sections.get("group_replies")
+            header_id = sections.get("links") if media_key == "links" else sections.get("group_replies")
 
         try:
             if event.message.media:
@@ -416,7 +436,6 @@ async def forward_private_to_storage(event):
         except Exception:
             return
 
-        # add meta
         try:
             kind = "رد بوت" if getattr(sender, "bot", False) else "رد ضمن مجموعة"
             meta = (
@@ -430,11 +449,9 @@ async def forward_private_to_storage(event):
             pass
         return
 
-    # Other incoming messages (we generally ignore)
     return
 
-
-# إعداد الأرشيف الذكي + أرشفة الوسائط الأقدم
+# أرشفة الوسائط الأقدم
 @client.on(events.NewMessage(from_users='me', pattern=r'\.تعيين_ارشيف (\-?\d+)'))
 @client.on(events.NewMessage(from_users='me', pattern=r'\.set_archive (\-?\d+)'))
 async def set_archive(event):
