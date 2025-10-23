@@ -4,20 +4,20 @@ from core.bot_client import bot
 
 # زخرفة
 HEADER_AR = (
-    "╔════════════════════════════════════════════════╗\n"
-    "║   𓆩 قائمة أوامر FLEX – مميّزة وسهلة الاستخدام 𓆪   ║\n"
-    "╚════════════════════════════════════════════════╝\n"
+    "╔════════════════════════════════════════════════════╗\n"
+    "║       ✦ دليل أوامر FLEX — تصميم أنيق وخفيف ✦       ║\n"
+    "╚════════════════════════════════════════════════════╝\n"
 )
-FOOTER_AR = "\n— مستند الأوامر • FLEX —\n"
+FOOTER_AR = "\n⟡ تلميح: لعرض قسم محدد اكتب .م1 — وللإنجليزية .c1 ⟡\n"
 
 HEADER_EN = (
-    "╔════════════════════════════════════════════════╗\n"
-    "║   𓆩 FLEX Commands – Beautiful and Easy to Use 𓆪   ║\n"
-    "╚════════════════════════════════════════════════╝\n"
+    "╔════════════════════════════════════════════════════╗\n"
+    "║        ✦ FLEX Commands — Clean & Elegant ✦         ║\n"
+    "╚════════════════════════════════════════════════════╝\n"
 )
-FOOTER_EN = "\n— Commands Reference • FLEX —\n"
+FOOTER_EN = "\n⟡ Tip: Show a specific section with .c1 — Arabic via .م1 ⟡\n"
 
-SEPARATOR = "\n┄┄┄┄┄┄┄┄┄┄┄\n"
+SEPARATOR = "\n────────────────────────────────────────────────────\n"
 
 # العربية
 COMMANDS_AR = {
@@ -26,8 +26,21 @@ COMMANDS_AR = {
         (".معلوماتي", "تفاصيل متقدمة عن الحساب: عدد المحادثات، البوتات، المجموعات والقنوات."),
     ],
     "التخزين": [
-        (".تفعيل التخزين", "إنشاء وتفعيل كروب تخزين خاص بالرسائل الواردة من الخاص."),
-        (".تعطيل التخزين", "إيقاف التخزين وحذف تعريف مجموعة التخزين المحلية."),
+        (".تفعيل التخزين", "إنشاء/تفعيل كروب التخزين وإنشاء أقسامه."),
+        (".تعطيل التخزين", "إيقاف التخزين وإلغاء ربط الكروب وإيقاف التحويل."),
+        (".تعيين_تخزين", "تعيين كروب موجود كمخزن (بالرد على رسالة داخل الكروب)."),
+        (".حالة التخزين", "عرض حالة التخزين، معرف الكروب/الأرشيف، وحالة التحويل."),
+        (".تشغيل التحويل", "تشغيل التحويل التلقائي إلى كروب التخزين."),
+        (".ايقاف التحويل", "إيقاف التحويل التلقائي إلى كروب التخزين."),
+        (".اختبار التخزين", "إرسال رسالة اختبار إلى كروب التخزين."),
+        (".تعيين_ارشيف <id> | بالرد", "تعيين محادثة الأرشيف بالمعرف أو بالرد."),
+        (".أرشفة <أيام>", "نقل الوسائط الأقدم من عدد الأيام المحدد إلى الأرشيف."),
+        (".storage_whitelist_add <chat_id>|بالرد", "إضافة مجموعة لقائمة السماح بالتحويل."),
+        (".storage_whitelist_remove <chat_id>|بالرد", "إزالة مجموعة من قائمة السماح."),
+        (".storage_whitelist_show", "عرض قائمة السماح الحالية."),
+        (".storage_blacklist_add <chat_id>|بالرد", "إضافة مجموعة لقائمة الحظر (يتم تجاهلها)."),
+        (".storage_blacklist_remove <chat_id>|بالرد", "إزالة مجموعة من قائمة الحظر."),
+        (".storage_blacklist_show", "عرض قائمة الحظر الحالية."),
     ],
     "الردود التلقائية": [
         (".اضف رد + الكلمة + الرد", "إضافة رد تلقائي للكلمة المحددة."),
@@ -67,6 +80,7 @@ COMMANDS_AR = {
         (".ترجم <لغة> [نص/بالرد]", "ترجمة ذكية عبر Google (gpytranslate/deep-translator)."),
         (".كشف_لغة [نص/بالرد]", "كشف لغة النص تلقائيًا."),
         (".تلخيص [عدد_الجمل] (بالرد)", "تلخيص سريع للنص إلى عدد جمل محدد."),
+        (".انمي <وصف>", "اقتراح اسم أنمي من وصف/قصة قصيرة."),
     ],
     "الصيد (يوزرات)": [
         (".صيد <نمط>", "بدء عملية صيد يوزر وفق النمط المحدد."),
@@ -137,6 +151,15 @@ COMMANDS_AR = {
         (".مسح صورة فحص عربي", "مسح إعداد صورة الفحص العربية والرجوع للوضع الافتراضي."),
         (".مسح صورة فحص انجليزي", "مسح إعداد صورة الفحص الإنجليزية والرجوع للوضع الافتراضي."),
     ],
+    "البوت المساعد": [
+        (".حالة_البوت | .bot_status", "عرض حالة البوت المساعد وهل الأزرار/الإنلاين مفعلة."),
+        ("/start | /help (Bot)", "قائمة استخدام تفاعلية عبر أزرار، تعمل عند ضبط BOT_TOKEN."),
+        ("Inline (ai: ...)", "ذكاء سريع: ai: سؤالك"),
+        ("Inline (tr: <lang> text)", "ترجمة فورية."),
+        ("Inline (sum:N text)", "تلخيص لنص إلى N جملة."),
+        ("Inline (short: URL)", "تقصير رابط عبر TinyURL."),
+        ("Inline (url: URL)", "جلب عنوان صفحة ويب."),
+    ],
 }
 
 # الإنجليزية
@@ -146,8 +169,21 @@ COMMANDS_EN = {
         (".meinfo", "Advanced details: dialogs, bots, groups and channels."),
     ],
     "Storage": [
-        (".enable_storage", "Create/enable a storage group for forwarding private messages."),
-        (".disable_storage", "Disable storage and remove local group binding."),
+        (".enable_storage", "Create/enable storage group and initialize sections."),
+        (".disable_storage", "Disable storage, unbind group and stop forwarding."),
+        (".bind_storage", "Bind an existing group as storage (reply inside that group)."),
+        (".storage_status", "Show storage status, group/archive IDs, and forward state."),
+        (".start_forward", "Enable auto-forwarding to storage."),
+        (".stop_forward", "Disable auto-forwarding to storage."),
+        (".storage_test", "Send a test message to storage group."),
+        (".set_archive <id> | reply", "Set archive chat by ID or by replying."),
+        (".archive <days>", "Move media older than N days from storage to archive."),
+        (".storage_whitelist_add <chat_id>|reply", "Add a group to forwarding whitelist."),
+        (".storage_whitelist_remove <chat_id)|reply", "Remove a group from whitelist."),
+        (".storage_whitelist_show", "Show current whitelist."),
+        (".storage_blacklist_add <chat_id)|reply", "Add a group to forwarding blacklist (ignored)."),
+        (".storage_blacklist_remove <chat_id)|reply", "Remove a group from blacklist."),
+        (".storage_blacklist_show", "Show current blacklist."),
     ],
     "Auto Replies": [
         (".add_reply + KEY + VALUE", "Add an auto reply for a specific keyword."),
@@ -186,10 +222,11 @@ COMMANDS_EN = {
         (".clear_check_image ar|en", "Clear the configured check image and revert to default."),
     ],
     "AI": [
-        (".a <<text/reply>", "Smart brief answer—example: .ai how are you → 'I’m fine!'"),
-        (".translat <<lang> [text/reply]", "Smart translation via Google."),
+        (".ai <text/reply>", "Smart brief answer — example: .ai how are you → 'I’m fine!'"),
+        (".translate <lang> [text/reply]", "Smart translation via Google."),
         (".detect_lang [text/reply]", "Detect text language automatically."),
         (".summarize [sentences] (reply)", "Quick summary to N sentences."),
+        (".anime <description>", "Suggest anime title from a brief description."),
     ],
     "Hunting (Usernames)": [
         (".hunt <pattern>", "Start username hunting according to pattern."),
@@ -258,10 +295,23 @@ COMMANDS_EN = {
         (".set_check_image ar|en <url> | reply to image", "Set/save check image (Arabic or English) from a URL or by replying to media."),
         (".clear_check_image ar|en", "Clear the configured check image and revert to default."),
     ],
+    "Assistant Bot": [
+        (".bot_status | .حالة_البوت", "Show assistant-bot status and whether inline/buttons are active."),
+        ("/start | /help (Bot)", "Interactive usage menu with buttons (requires BOT_TOKEN)."),
+        ("Inline (ai: ...)", "Quick AI: ai: your question"),
+        ("Inline (tr: <lang> text)", "Instant translation."),
+        ("Inline (sum:N text)", "Summarize text to N sentences."),
+        ("Inline (short: URL)", "Shorten a URL via TinyURL."),
+        ("Inline (url: URL)", "Fetch page title."),
+    ],
 }
 
 def build_section(title, items):
-    lines = [f"• {cmd}\n  ⤷ {desc}" for cmd, desc in items]
+    # اجعل كل أمر قابلاً للنسخ بوضعه داخل تنسيق أحادي `code`
+    # Example:
+    # `.<command>`
+    #   ⤷ description
+    lines = [f"`{cmd}`\n  ⤷ {desc}" for cmd, desc in items]
     return f"【 {title} 】\n" + "\n".join(lines)
 
 def build_help_text(commands, header, footer):
@@ -326,14 +376,32 @@ async def show_commands(event):
     commands = COMMANDS_AR if lang == "AR" else COMMANDS_EN
     header = HEADER_AR if lang == "AR" else HEADER_EN
     footer = FOOTER_AR if lang == "AR" else FOOTER_EN
+
+    # عدد الأقسام وترقيمها + تلميح مناسب للغة مع تصميم أجمل وتباعد بين الأقسام
+    sections = list(commands.keys())
+    if lang == "AR":
+        numbered_lines = [
+            f"┏ {idx+1}. {title}\n┗ ⟶ اكتب .م{idx+1} لعرض أوامر هذا القسم"
+            for idx, title in enumerate(sections)
+        ]
+    else:
+        numbered_lines = [
+            f"┏ {idx+1}. {title}\n┗ ⟶ type .c{idx+1} to view this section"
+            for idx, title in enumerate(sections)
+        ]
+    # مسافة فارغة بين كل قسم وآخر
+    numbered_header = header + "\n\n".join(numbered_lines) + "\n\n" + SEPARATOR
+
     await event.edit("جارٍ إعداد قائمة الأوامر..." if lang == "AR" else "Preparing commands list...")
-    text = build_help_text(commands, header, footer)
-    await send_chunked(event, text)
+    # عرض الأقسام فقط بدون تفاصيل الأوامر
+    # العربية: استخدم .م1 لعرض أوامر القسم المحدد
+    # الإنجليزية: استخدم .c1 لعرض أوامر القسم المحدد
+    summary_text = numbered_header + footer
+    await send_chunked(event, summary_text)
 
 # قائمة المساعدة التفاعلية
 @client.on(events.NewMessage(outgoing=True, pattern=r"\.(?:المساعدة|مساعدة|assist)$"))
 async def show_help_menu(event):
-    # العربية لأوامر المساعدة العربية، الإنجليزية لأمر assist
     trigger = (event.pattern_match.group(0) or "").strip()
     lang = "EN" if "assist" in trigger else "AR"
     commands = COMMANDS_AR if lang == "AR" else COMMANDS_EN
@@ -345,7 +413,38 @@ async def show_help_menu(event):
         await event.edit(build_menu_text(lang))
         await event.respond("BOT_TOKEN غير مضبوط؛ سيتم عرض القائمة بدون أزرار." if lang == "AR" else "BOT_TOKEN not set; showing menu without buttons.")
 
-# معالجات الأزرار عبر البوت
+# أمر عرض قسم محدد عبر .م1 و .م٢ ... إلخ (يدعم الأرقام العربية والإنجليزية)
+def eastern_to_western_digits(s: str) -> str:
+    trans = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+    return s.translate(trans)
+
+@client.on(events.NewMessage(outgoing=True, pattern=r"\.م([0-9٠-٩]+)$"))
+async def show_ar_section_by_number(event):
+    num_str = event.pattern_match.group(1)
+    num = int(eastern_to_western_digits(num_str))
+    sections = list(COMMANDS_AR.keys())
+    if not (1 <= num <= len(sections)):
+        await event.edit("رقم القسم غير صالح.")
+        return
+    idx = num - 1
+    title = sections[idx]
+    text = HEADER_AR + build_section(title, COMMANDS_AR.get(title, [])) + FOOTER_AR
+    await send_chunked(event, text)
+
+# أمر عرض قسم إنجليزي عبر .c1 و .c2 ... إلخ
+@client.on(events.NewMessage(outgoing=True, pattern=r"\.c([0-9]+)$"))
+async def show_en_section_by_number(event):
+    num_str = event.pattern_match.group(1)
+    num = int(num_str)
+    sections = list(COMMANDS_EN.keys())
+    if not (1 <= num <= len(sections)):
+        await event.edit("Invalid section number.")
+        return
+    idx = num - 1
+    title = sections[idx]
+    text = HEADER_EN + build_section(title, COMMANDS_EN.get(title, [])) + FOOTER_EN
+    await send_chunked(event, text)
+
 if bot is not None:
     @bot.on(events.CallbackQuery)
     async def help_callback(event):
@@ -688,78 +787,3 @@ async def send_chunked(event, text, chunk_size=3500):
 @client.on(events.NewMessage(outgoing=True, pattern=r"\.(?:الاوامر|اوامر)$"))
 async def show_commands_ar(event):
     await event.edit("جارٍ إعداد قائمة الأوامر...")
-    text = build_help_text_ar()
-    await send_chunked(event, text)
-
-# English textual help
-@client.on(events.NewMessage(outgoing=True, pattern=r"\.help$"))
-async def show_commands_en(event):
-    await event.edit("Preparing command list...")
-    text = build_help_text_en()
-    await send_chunked(event, text)
-
-# Arabic interactive help
-@client.on(events.NewMessage(outgoing=True, pattern=r"\.(?:المساعدة|مساعدة)$"))
-async def show_help_menu_ar(event):
-    if bot is not None:
-        await bot.send_message(event.chat_id, build_menu_text_ar(), buttons=build_buttons("help_ar", SECTIONS_AR))
-        await event.delete()
-    else:
-        await event.edit(build_menu_text_ar())
-        await event.respond("BOT_TOKEN غير مضبوط؛ سيتم عرض القائمة بدون أزرار.")
-
-# English interactive help
-@client.on(events.NewMessage(outgoing=True, pattern=r"\.(?:support|assist|help_menu)$"))
-async def show_help_menu_en(event):
-    if bot is not None:
-        await bot.send_message(event.chat_id, build_menu_text_en(), buttons=build_buttons("help_en", SECTIONS_EN))
-        await event.delete()
-    else:
-        await event.edit(build_menu_text_en())
-        await event.respond("BOT_TOKEN not set; showing menu without buttons.")
-
-# Callback handlers (bot)
-if bot is not None:
-    @bot.on(events.CallbackQuery)
-    async def help_callback(event):
-        data = (event.data or b"").decode()
-        if data.startswith("help_ar:"):
-            parts = data.split(":")
-            if len(parts) == 2 and parts[1] in {"MENU", "ALL"}:
-                if parts[1] == "MENU":
-                    await event.edit(build_menu_text_ar(), buttons=build_buttons("help_ar", SECTIONS_AR))
-                else:
-                    await event.edit("جارٍ عرض جميع الأقسام...")
-                    await bot.send_message(event.chat_id, build_help_text_ar())
-                    await event.answer("تم الإرسال.")
-                return
-            if len(parts) == 3 and parts[1] == "idx":
-                idx = int(parts[2])
-                if not (0 <= idx < len(SECTIONS_AR)):
-                    await event.answer("خارج النطاق.", alert=True)
-                    return
-                title = SECTIONS_AR[idx]
-                text = HEADER_AR + f"【 {title} 】\n" + "\n".join([f"• {c}\n  ⤷ {d}" for c, d in COMMANDS_AR[title]]) + FOOTER_AR
-                await event.edit(text, buttons=build_section_buttons("help_ar", idx, SECTIONS_AR))
-                await event.answer(f"تم فتح قسم: {title}")
-                return
-        if data.startswith("help_en:"):
-            parts = data.split(":")
-            if len(parts) == 2 and parts[1] in {"MENU", "ALL"}:
-                if parts[1] == "MENU":
-                    await event.edit(build_menu_text_en(), buttons=build_buttons("help_en", SECTIONS_EN))
-                else:
-                    await event.edit("Showing all sections...")
-                    await bot.send_message(event.chat_id, build_help_text_en())
-                    await event.answer("Sent.")
-                return
-            if len(parts) == 3 and parts[1] == "idx":
-                idx = int(parts[2])
-                if not (0 <= idx < len(SECTIONS_EN)):
-                    await event.answer("Out of range.", alert=True)
-                    return
-                title = SECTIONS_EN[idx]
-                text = HEADER_EN + f"【 {title} 】\n" + "\n".join([f"• {c}\n  ⤷ {d}" for c, d in COMMANDS_EN[title]]) + FOOTER_EN
-                await event.edit(text, buttons=build_section_buttons("help_en", idx, SECTIONS_EN))
-                await event.answer(f"Opened: {title}")
-                return

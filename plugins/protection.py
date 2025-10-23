@@ -27,7 +27,8 @@ def _save_json(path, data):
 protection_data = _load_json(
     PROTECTION_FILE,
     {
-        "enabled": True,
+        "enabled": True,             # حماية الخاص الشاملة
+        "badwords_enabled": True,    # مانع الشتم
         "banned_words": [
             "كسمك", "انيك امك", "قحبة", "شرموطة", "زبي", "متناك", "خول", "عاهرة",
             "زب", "عرص", "قواد", "حيوان", "زبالة", "ملعون", "تف عليك", "كحبة", "كلب",
@@ -65,12 +66,63 @@ def save_warnings():
     _save_json(WARNINGS_FILE, warnings_data)
 
 
+# أوامر تشغيل/إيقاف حماية الخاص الشاملة (AR/EN)
 @client.on(events.NewMessage(pattern=r"^\.حماية الخاص$"))
 async def toggle_private_protection(event):
     protection_data["enabled"] = not protection_data["enabled"]
     save_protection()
     status = "⎙ مفعلة" if protection_data["enabled"] else "⎙ معطلة"
     await event.edit(f"**⎙ تم تغيير وضع حماية الخاص إلى:** {status}")
+
+@client.on(events.NewMessage(pattern=r"^\.تشغيل حماية الخاص$"))
+async def enable_private_protection(event):
+    protection_data["enabled"] = True
+    save_protection()
+    await event.edit("**⎙ تم تشغيل حماية الخاص.**")
+
+@client.on(events.NewMessage(pattern=r"^\.ايقاف حماية الخاص$"))
+async def disable_private_protection(event):
+    protection_data["enabled"] = False
+    save_protection()
+    await event.edit("**⎙ تم إيقاف حماية الخاص.**")
+
+@client.on(events.NewMessage(pattern=r"^\.private_protect_on$"))
+async def enable_private_protection_en(event):
+    protection_data["enabled"] = True
+    save_protection()
+    await event.edit("Private protection: ON")
+
+@client.on(events.NewMessage(pattern=r"^\.private_protect_off$"))
+async def disable_private_protection_en(event):
+    protection_data["enabled"] = False
+    save_protection()
+    await event.edit("Private protection: OFF")
+
+
+# أوامر تشغيل/إيقاف مانع الشتم (AR/EN)
+@client.on(events.NewMessage(pattern=r"^\.تشغيل مانع الشتم$"))
+async def enable_badwords(event):
+    protection_data["badwords_enabled"] = True
+    save_protection()
+    await event.edit("**⎙ تم تشغيل مانع الشتم.**")
+
+@client.on(events.NewMessage(pattern=r"^\.ايقاف مانع الشتم$"))
+async def disable_badwords(event):
+    protection_data["badwords_enabled"] = False
+    save_protection()
+    await event.edit("**⎙ تم إيقاف مانع الشتم.**")
+
+@client.on(events.NewMessage(pattern=r"^\.badwords_on$"))
+async def enable_badwords_en(event):
+    protection_data["badwords_enabled"] = True
+    save_protection()
+    await event.edit("Bad-words filter: ON")
+
+@client.on(events.NewMessage(pattern=r"^\.badwords_off$"))
+async def disable_badwords_en(event):
+    protection_data["badwords_enabled"] = False
+    save_protection()
+    await event.edit("Bad-words filter: OFF")
 
 
 @client.on(events.NewMessage(pattern=r"^\.اضافة_كلمة_سيئة (.+)$"))
@@ -104,12 +156,14 @@ async def list_bad_words(event):
 
 @client.on(events.NewMessage)
 async def delete_bad_words(event):
-    if not protection_data["enabled"]:
+    # يجب تفعيل حماية الخاص ومانع الشتم معًا
+    if not protection_data.get("enabled") or not protection_data.get("badwords_enabled"):
         return
     if event.is_private and event.text:
         text_lower = (event.text or "").lower()
         for word in protection_data["banned_words"]:
-            if re.search(rf"\b{re.escape(word)}\b", text_lower):
+            # استخدام حدود كلمات أكثر موثوقية مع Unicode بدلاً من \b
+            if re.search(rf"(?<!\w){re.escape(word)}(?!\w)", text_lower):
                 try:
                     await event.delete()
                 except Exception:
@@ -169,6 +223,32 @@ async def handle_private_messages(event):
             warnings=warnings, max_warnings=max_warnings
         )
         await event.reply(msg)
+
+
+# أوامر تشغيل/إيقاف نظام التحذيرات (AR/EN)
+@client.on(events.NewMessage(pattern=r"^\.تشغيل التحذيرات$"))
+async def enable_warnings(event):
+    warnings_data["warnings_enabled"] = True
+    save_warnings()
+    await event.edit("**⎙ تم تشغيل نظام التحذيرات.**")
+
+@client.on(events.NewMessage(pattern=r"^\.ايقاف التحذيرات$"))
+async def disable_warnings(event):
+    warnings_data["warnings_enabled"] = False
+    save_warnings()
+    await event.edit("**⎙ تم إيقاف نظام التحذيرات.**")
+
+@client.on(events.NewMessage(pattern=r"^\.warnings_on$"))
+async def enable_warnings_en(event):
+    warnings_data["warnings_enabled"] = True
+    save_warnings()
+    await event.edit("Warnings system: ON")
+
+@client.on(events.NewMessage(pattern=r"^\.warnings_off$"))
+async def disable_warnings_en(event):
+    warnings_data["warnings_enabled"] = False
+    save_warnings()
+    await event.edit("Warnings system: OFF")
 
 
 @client.on(events.NewMessage(pattern=r"^\.قبول$"))
