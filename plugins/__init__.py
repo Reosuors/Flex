@@ -27,6 +27,7 @@ def load_all():
         "plugins.command_aliases",
         "plugins.check",
         "plugins.onboarding",
+        "plugins.log_admin",
         # Removed limits by request:
         # "plugins.member_limit",
         # "plugins.command_limit",
