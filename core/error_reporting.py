@@ -13,7 +13,9 @@ from core.client import client
 LOG_GROUP_TITLE = "قروب السجل"
 LOG_GROUP_BIO = "سجل أخطاء الأوامر — يتم الإبلاغ هنا عن أي خطأ يحصل أثناء تنفيذ الأوامر."
 LOG_GROUP_ID_FILE = "log_group_id.pkl"
-LOG_PHOTO_NAME = "flex.jpg"  # إن وجدت سنضعها صورة للمجموعة
+# جرّب صورة مخصّصة لقروب السجل أولاً، ثم سقط إلى flex.jpg إن لم تتوفر
+LOG_CUSTOM_PHOTO = "log_group.jpg"
+LOG_FALLBACK_PHOTO = "flex.jpg"
 
 
 def _load_log_group_id() -> Optional[int]:
@@ -29,6 +31,14 @@ def _load_log_group_id() -> Optional[int]:
 def _save_log_group_id(group_id: int) -> None:
     with open(LOG_GROUP_ID_FILE, "wb") as f:
         pickle.dump(group_id, f)
+
+
+def _pick_photo_path() -> Optional[str]:
+    if os.path.exists(LOG_CUSTOM_PHOTO):
+        return LOG_CUSTOM_PHOTO
+    if os.path.exists(LOG_FALLBACK_PHOTO):
+        return LOG_FALLBACK_PHOTO
+    return None
 
 
 async def ensure_log_group() -> int:
@@ -58,9 +68,10 @@ async def ensure_log_group() -> int:
     gid = channel.id
 
     # Set photo if available (best-effort)
-    if os.path.exists(LOG_PHOTO_NAME):
+    photo_path = _pick_photo_path()
+    if photo_path:
         try:
-            uploaded = await client.upload_file(LOG_PHOTO_NAME)
+            uploaded = await client.upload_file(photo_path)
             await client(ChannelEditPhotoRequest(
                 channel=channel,
                 photo=InputChatUploadedPhoto(file=uploaded, video=None, video_start_ts=None)
