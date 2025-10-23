@@ -1,4 +1,5 @@
 import re
+import os
 from telethon import events
 from core.client import client
 
@@ -104,7 +105,7 @@ def ai_reply_simple(text: str) -> str:
         return "العفو! هذا واجبي."
     if "من انت" in t or "مين انت" in t or "من أنت" in t:
         return "أنا مساعد FLEX الذكي—أساعدك بالأوامر والترجمة والملخصات."
-    return "حاضر! فهمت سؤالك، لكن كـ'رد ذكي' مختصر: محتاج توضيح أكثر؟"
+    return "حاضر! فهمت سؤالك، لكن كـ'رد ذكي' مختصر: محتاج توضيح أكثر?"
 
 async def ai_reply_openai(prompt: str) -> str:
     try:
@@ -144,6 +145,52 @@ async def ai_cmd(event):
         return
     answer = await ai_reply_openai(msg)
     await event.edit(answer)
+
+# --- Configure AI key from within Telegram (file-based, no env var needed) ---
+AI_KEY_PATH = "core/openai.key"
+
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.ضبط_ذكاء\s+([\s\S]+)$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.set_ai_key\s+([\s\S]+)$"))
+async def set_ai_key_cmd(event):
+    key = (event.pattern_match.group(1) or "").strip()
+    if not key:
+        await event.edit("استخدم: .ضبط_ذكاء <OpenAI_API_Key> أو .set_ai_key <key>")
+        return
+    try:
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(AI_KEY_PATH), exist_ok=True)
+        with open(AI_KEY_PATH, "w", encoding="utf-8") as f:
+            f.write(key.strip())
+        await event.edit("✓ تم حفظ توكن الذكاء الاصطناعي محليًا. الآن يمكن استخدام أمر .ذكاء بدون متغير OPENAI_API_KEY.")
+    except Exception as e:
+        await event.edit(f"تعذر حفظ التوكن: {e}")
+
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.حذف_ذكاء$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.remove_ai_key$"))
+async def remove_ai_key_cmd(event):
+    try:
+        if os.path.exists(AI_KEY_PATH):
+            os.remove(AI_KEY_PATH)
+            await event.edit("✓ تم حذف التوكن المحلي. سيعود النظام للرد البسيط بدون ذكاء اصطناعي.")
+        else:
+            await event.edit("لا يوجد توكن محفوظ لحذفه.")
+    except Exception as e:
+        await event.edit(f"تعذر حذف التوكن: {e}")
+
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.حالة_ذكاء$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.ai_key_status$"))
+async def ai_key_status_cmd(event):
+    exists = os.path.exists(AI_KEY_PATH)
+    if not exists:
+        await event.edit("الحالة: لا يوجد توكن محفوظ. استخدم .ضبط_ذكاء <key> للتفعيل.")
+        return
+    try:
+        with open(AI_KEY_PATH, "r", encoding="utf-8") as f:
+            key = (f.read() or "").strip()
+        masked = (key[:4] + "..." + key[-4:]) if len(key) >= 8 else "محجوب"
+        await event.edit(f"الحالة: موجود ✅\nالمسار: {AI_KEY_PATH}\nالتوكن (مخفي): {masked}")
+    except Exception:
+        await event.edit(f"الحالة: موجود ✅\nالمسار: {AI_KEY_PATH}\nالتوكن (مخفي): غير قابل للقراءة")
 
 @client.on(events.NewMessage(outgoing=True, pattern=r"^\.ترجم\s+(\S+)(?:\s+([\s\S]+))?$"))
 @client.on(events.NewMessage(outgoing=True, pattern=r"^\.translate\s+(\S+)(?:\s+([\s\S]+))?$"))

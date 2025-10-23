@@ -4,7 +4,22 @@ API_ID = os.environ.get("API_ID")
 API_HASH = os.environ.get("API_HASH")
 STRING_SESSION = os.environ.get("STRING_SESSION")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")  # optional, for assistant bot with inline buttons
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")  # optional, for advanced AI replies
+
+# Optional AI key: allow environment OR local file-based secret without env var
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    # Try to load from a local file so the user doesn't need to set an env var.
+    # We check a few common paths; first match wins.
+    for path in ("core/openai.key", "openai.key", "OPENAI_API_KEY.txt"):
+        try:
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    OPENAI_API_KEY = (f.read() or "").strip()
+                if OPENAI_API_KEY:
+                    break
+        except Exception:
+            # Ignore file read errors and continue
+            pass
 
 def _validate() -> int:
     missing = []
