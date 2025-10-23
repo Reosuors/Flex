@@ -132,7 +132,8 @@ async def ai_reply_openai(prompt: str) -> str:
     except Exception:
         return ai_reply_simple(prompt)
 
-@client.on(events.NewMessage(outgoing=True, pattern=r"\.ذكاء(?:\s+([\s\S]+))?$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.ذكاء(?:\s+([\s\S]+))?$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.ai(?:\s+([\s\S]+))?$"))
 async def ai_cmd(event):
     msg = event.pattern_match.group(1)
     if not msg and event.is_reply:
@@ -144,7 +145,8 @@ async def ai_cmd(event):
     answer = await ai_reply_openai(msg)
     await event.edit(answer)
 
-@client.on(events.NewMessage(outgoing=True, pattern=r"\.ترجم\s+(\S+)(?:\s+([\s\S]+))?$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.ترجم\s+(\S+)(?:\s+([\s\S]+))?$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.translate\s+(\S+)(?:\s+([\s\S]+))?$"))
 async def translate_cmd(event):
     target = event.pattern_match.group(1)
     inline_text = event.pattern_match.group(2)
@@ -158,7 +160,8 @@ async def translate_cmd(event):
     translated = await translate_text(text, target)
     await event.edit(f"الترجمة ({normalize_lang(target)}):\n{translated}")
 
-@client.on(events.NewMessage(outgoing=True, pattern=r"\.كشف_لغة(?:\s+([\s\S]+))?$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.كشف_لغة(?:\s+([\s\S]+))?$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.detect_lang(?:\s+([\s\S]+))?$"))
 async def detect_lang_cmd(event):
     text = event.pattern_match.group(1)
     if not text and event.is_reply:
@@ -176,7 +179,8 @@ async def detect_lang_cmd(event):
     except Exception as e:
         await event.edit(f"تعذر كشف اللغة: {e}")
 
-@client.on(events.NewMessage(outgoing=True, pattern=r"\.تلخيص(?:\s+(\d+))?$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.تلخيص(?:\s+(\d+))?$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.summarize(?:\s+(\d+))?$"))
 async def summarize_cmd(event):
     n_raw = event.pattern_match.group(1)
     max_sentences = int(n_raw) if n_raw else 3
@@ -253,7 +257,8 @@ async def guess_anime_openai(description: str):
     except Exception:
         return None
 
-@client.on(events.NewMessage(outgoing=True, pattern=r"\.انمي(?:\s+([\s\S]+))?$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.انمي(?:\s+([\s\S]+))?$"))
+@client.on(events.NewMessage(outgoing=True, pattern=r"^\.anime(?:\s+([\s\S]+))?$"))
 async def anime_search_cmd(event):
     desc = event.pattern_match.group(1)
     if not desc and event.is_reply:
