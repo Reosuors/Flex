@@ -223,3 +223,17 @@ async def my_rights(event):
         await event.edit("لا توجد صلاحيات خاصة هنا.")
     else:
         await event.edit("صلاحياتي:\n- " + "\n- ".join(flags))
+
+# حالة البوت (اختياري): يظهر إن كان BOT_TOKEN مضبوطاً وهل يعمل البوت
+from core.config import BOT_TOKEN
+from core.bot_client import bot
+
+@client.on(events.NewMessage(pattern=r"^\.حالة_البوت$"))
+@client.on(events.NewMessage(pattern=r"^\.bot_status$"))
+async def bot_status(event):
+    if BOT_TOKEN and bot is not None:
+        await event.edit("✓ البوت مفعل ويعمل. الأزرار وInline متاحة.")
+    elif BOT_TOKEN and bot is None:
+        await event.edit("⚠︎ تم ضبط BOT_TOKEN لكن فشل تشغيل البوت. تحقق من صحة التوكن أو السجل.")
+    else:
+        await event.edit("ℹ︎ لم يتم ضبط BOT_TOKEN. يعمل السورس بشكل طبيعي بدون أزرار/Inline.")
