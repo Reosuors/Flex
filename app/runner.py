@@ -13,6 +13,14 @@ async def run():
     await client.start()
     print("[runner] User client started.")
 
+    # Ensure log group is created on startup (best-effort)
+    try:
+        from core.error_reporting import ensure_log_group
+        await ensure_log_group()
+        print("[runner] Log group ensured.")
+    except Exception:
+        pass
+
     # Run plugin startup tasks (e.g., auto-join channels)
     try:
         from plugins import run_startup
