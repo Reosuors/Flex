@@ -198,8 +198,12 @@ if bot is not None:
     # /start and /help for the assistant bot
     @bot.on(events.NewMessage(pattern=r"^/(start|help)$"))
     async def bot_start(event):
-        qlang = _detect_lang_from_query(event.raw_text or "")
-        await event.respond(_menu_text(qlang), buttons=_menu_buttons(qlang))
+        # Always ask for language explicitly
+        text = "اختر لغتك • Choose your language"
+        buttons = [
+            [Button.inline("عربي", data=b"asst:AR:menu"), Button.inline("English", data=b"asst:EN:menu")]
+        ]
+        await event.respond(text, buttons=buttons)
 
     @bot.on(events.CallbackQuery)
     async def asst_callbacks(event):
