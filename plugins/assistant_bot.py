@@ -255,6 +255,145 @@ if bot is not None:
             await event.answer([await article("Assistant Menu • FLEX", _menu_text(lang))], cache_time=0)
             return
 
+    # -------------------------
+    # Relay (Contact) Bot Logic
+    # -------------------------
+    # Persist mapping from owner's received bot messages -> original user ids
+    import os, json
+
+    RELAY_MAP_FILE = "relay_map.json"
+    _RELAY_MAP = None
+    _OWNER_ID = None
+
+    def _load_map():
+        nonlocal _RELAY_MAP
+        if _RELAY_MAP is not None:
+            return _RELAY_MAP
+        if os.path.exists(RELAY_MAP_FILE) and os.stat(RELAY_MAP_FILE).st_size > 0:
+            try:
+                with open(RELAY_MAP_FILE, "r", encoding="utf-8") as f:
+                    _RELAY_MAP = json.load(f)
+            except Exception:
+                _RELAY_MAP = {}
+        else:
+            _RELAY_MAP = {}
+        return _RELAY_MAP
+
+    def _save_map():
+        if _RELAY_MAP is None:
+            return
+        try:
+            with open(RELAY_MAP_FILE, "w", encoding="utf-8") as f:
+                json.dump(_RELAY_MAP, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    async def _get_owner_id():
+        nonlocal _OWNER_ID
+        if _OWNER_ID:
+            return _OWNER_ID
+        try:
+            # Use the user session to fetch owner's id once
+            from core.client import client as user_client
+            me = await user_client.get_me()
+            _OWNER_ID = me.id
+        except Exception:
+            _OWNER_ID = None
+        return _OWNER_ID
+
+    async def _send_to_owner(src_event):
+        """
+        Forward a message from any user (not owner) to the owner with metadata and save mapping.
+        """
+        owner_id = await _get_owner_id()
+        if not owner_id:
+            return
+        from_user = await src_event.get_sender()
+        user_id = from_user.id
+        if getattr(from_user, "bot", False):
+            # ignore other bots
+            return
+
+        # Build metadata
+        username = ("@" + from_user.username) if getattr(from_user, "username", None) else "—"
+        name = (getattr(from_user, "first_name", "") or "") + (" " + (getattr(from_user, "last_name", "") or "")).strip()
+        meta = f"رسالة جديدة من المستخدم\nName: {name or '—'}\nID: {user_id}\nUsername: {username}"
+
+        # Relay
+        try:
+            if src_event.message and src_event.message.media:
+                cap = (src_event.raw_text or "")  # include any text
+                sent = await bot.send_file(owner_id, src_event.message, caption=(meta + ("\n\n" + cap if cap else "")))
+            else:
+                text = (src_event.raw_text or "")
+                sent = await bot.send_message(owner_id, meta + ("\n\n" + text if text else ""))
+        except Exception:
+            return
+
+        # Map reply target
+        try:
+            _map = _load_map()
+            _map[str(sent.id)] = user_id
+            _save_map()
+        except Exception:
+            pass
+
+    async def _reply_to_user(owner_event):
+        """
+        Owner replies to a relayed message: deliver the reply back to original user.
+        """
+        owner_id = await _get_owner_id()
+        if not owner_id or owner_event.sender_id != owner_id:
+            return
+        if not owner_event.is_reply:
+            return
+        try:
+            reply_msg = await owner_event.get_reply_message()
+            original_map = _load_map()
+            target_user_id = original_map.get(str(reply_msg.id))
+            if not target_user_id:
+                # Fallback: try parse ID from metadata text
+                m = re.search(r"ID:\s*(\d+)", (reply_msg.raw_text or ""))
+                if m:
+                    target_user_id = int(m.group(1))
+            if not target_user_id:
+                return
+        except Exception:
+            return
+
+        # Send owner's reply to original user
+        try:
+            if owner_event.message and owner_event.message.media:
+                cap = (owner_event.raw_text or "")
+                await bot.send_file(target_user_id, owner_event.message, caption=cap)
+            else:
+                await bot.send_message(target_user_id, (owner_event.raw_text or ""))
+        except Exception:
+            pass
+
+    # Handle incoming messages for relay
+    @bot.on(events.NewMessage(incoming=True))
+    async def relay_handler(event):
+        # Ignore service/inline messages
+        if event.via_bot_id:
+            return
+        owner_id = await _get_owner_id()
+        if not owner_id:
+            return
+
+        # If message from owner in bot dialog: treat as potential reply to user
+        if event.is_private and event.sender_id == owner_id:
+            await _reply_to_user(event)
+            return
+
+        # If message from any other user (private) -> relay to owner
+        if event.is_private and event.sender_id != owner_id:
+            await _send_to_owner(event)
+            return
+
+        # Ignore groups/channels for now
+        return
+
         # ai: prompt
         m = re.match(r"^ai:\s*(.+)$", q, flags=re.IGNORECASE)
         if m:
