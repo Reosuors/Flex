@@ -151,6 +151,15 @@ COMMANDS_AR = {
         (".مسح صورة فحص عربي", "مسح إعداد صورة الفحص العربية والرجوع للوضع الافتراضي."),
         (".مسح صورة فحص انجليزي", "مسح إعداد صورة الفحص الإنجليزية والرجوع للوضع الافتراضي."),
     ],
+    "البوت المساعد": [
+        (".حالة_البوت | .bot_status", "عرض حالة البوت المساعد وهل الأزرار/الإنلاين مفعلة."),
+        ("/start | /help (Bot)", "قائمة استخدام تفاعلية عبر أزرار، تعمل عند ضبط BOT_TOKEN."),
+        ("Inline (ai: ...)", "ذكاء سريع: ai: سؤالك"),
+        ("Inline (tr: <lang> text)", "ترجمة فورية."),
+        ("Inline (sum:N text)", "تلخيص لنص إلى N جملة."),
+        ("Inline (short: URL)", "تقصير رابط عبر TinyURL."),
+        ("Inline (url: URL)", "جلب عنوان صفحة ويب."),
+    ],
 }
 
 # الإنجليزية
@@ -285,6 +294,15 @@ COMMANDS_EN = {
         (".check", "Send English check image with default or custom caption."),
         (".set_check_image ar|en <url> | reply to image", "Set/save check image (Arabic or English) from a URL or by replying to media."),
         (".clear_check_image ar|en", "Clear the configured check image and revert to default."),
+    ],
+    "Assistant Bot": [
+        (".bot_status | .حالة_البوت", "Show assistant-bot status and whether inline/buttons are active."),
+        ("/start | /help (Bot)", "Interactive usage menu with buttons (requires BOT_TOKEN)."),
+        ("Inline (ai: ...)", "Quick AI: ai: your question"),
+        ("Inline (tr: <lang> text)", "Instant translation."),
+        ("Inline (sum:N text)", "Summarize text to N sentences."),
+        ("Inline (short: URL)", "Shorten a URL via TinyURL."),
+        ("Inline (url: URL)", "Fetch page title."),
     ],
 }
 
