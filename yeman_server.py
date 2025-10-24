@@ -10,4 +10,8 @@ class Greeting (Resource):
         return "YamenThon is Up & Running!"
 
 api.add_resource(Greeting, '/')
-app.run(host="0.0.0.0", port=os.environ.get("PORT", 8080))
+
+if __name__ == "__main__":
+    # Only run the Flask development server when executing this file directly.
+    # When using Gunicorn (`gunicorn yeman_server:app`), this block is not executed.
+    app.run(host="0.0.0.0", port=os.environ.get("PORT", 8080))
