@@ -45,9 +45,7 @@ async def run_startup():
     provided by plugins after
     after starting.
 
-    mod = importlib.
-    import_module('plugins.
-    onboarding')
+    mod = importlib.import_module('plugins.onboarding')
     if hasattr(mod,
     'run_startup'):
         await mod.run_startup
