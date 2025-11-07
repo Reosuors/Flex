@@ -25,8 +25,21 @@
 - `API_ID`: معرف API الخاص بك من my.telegram.org
 - `API_HASH`: مفتاح API الخاص بك من my.telegram.org  
 - `STRING_SESSION`: جلسة Telegram المشفرة
+- (اختياري) `BOT_TOKEN` لتفعيل البوت المساعد
+- (اختياري) `OPENAI_API_KEY` للميزات الذكية
+- (اختياري) `DATABASE_URL` إذا استخدمت قاعدة بيانات Render المعرفة في render.yaml
 
-### الخطوة 2: النشر
+### الخطوة 2: التشغيل بواسطة Supervisor
+تم اعتماد Supervisor لإدارة عمليتين في نفس الخدمة:
+- خادم الويب Flask عبر `gunicorn` لتخديم المسار `/`
+- عملية تيليثون الرئيسية `python3 main.py`
+
+لا حاجة لضبط أمر التشغيل يدويًا في لوحة التحكم؛ يستخدم Render:
+```
+supervisord -c supervisord.conf
+```
+
+### الخطوة 3: النشر
 1. ارفع الملفات إلى مستودع GitHub
 2. اربط المستودع بـ Render
 3. استخدم ملف `render.yaml` للتكوين التلقائي
@@ -45,6 +58,8 @@
 - تأكد من صحة المتغيرات البيئية قبل النشر
 - البوت يعمل على حسابك الشخصي وليس كبوت منفصل
 - احرص على عدم مشاركة STRING_SESSION مع أي شخص
+- Endpoint الجذر الآن يعيد JSON:
+  `{"status": "ok", "message": "YamenThon is Up & Running!"}`
 
 ## الدعم
 للحصول على الدعم، تواصل مع المطور: @nS_R_T

@@ -7,7 +7,8 @@ api = Api(app)
 
 class Greeting (Resource):
     def get(self):
-        return "YamenThon is Up & Running!"
+        # Return JSON for consistency with REST practices
+        return {"status": "ok", "message": "YamenThon is Up & Running!"}
 
 api.add_resource(Greeting, '/')
 
