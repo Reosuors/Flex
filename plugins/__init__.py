@@ -1,13 +1,8 @@
-# plugins_package. Import plugin
-modules and register their
-handlers
-aggressively split
-features out of modified.py
 import importlib
 
-def load_all():
-    # Load split plugins
-    base = {
+async def run_startup():
+    # قائمة الموديولات اللي ممكن تحتوي على run_startup
+    plugins_with_startup = {
         'plugins.stats',
         'plugins.micros',
         'plugins.bot_reply',
@@ -22,12 +17,9 @@ def load_all():
         'plugins.admin_tools',
         'plugins.hunter',
         'plugins.logger',
-        'plugins.admin_tools',
         'plugins.media',
         'plugins.inline_help',
         'plugins.ai_tools',
-
-        # 🚀 تم دمج "Internal interactions" هنا لحل مشكلة SyntaxError
         'plugins.interactions',
         'plugins.aliases',
         'plugins.check',
@@ -35,27 +27,11 @@ def load_all():
         'plugins.log_admin',
     }
 
-    # Internal interactions
-    # (تم حذف النصوص المعلقة من هنا)
-
-    # Limit number of requests
-    # by #plugin.membor_limit#
-    # #plugin_command_limit#
-    for module in base:
-        importlib.import_module(module)
-
-async def run_startup():
-    run any startup tasks
-    provided by plugins after
-    after starting.
-
-    # ✅ تم تصحيح السطر 48 بدمجه في سطر واحد صحيح
-    mod = importlib.import_module('plugins.onboarding')
-    
-    if hasattr(mod,
-    'run_startup'):
-        await mod.run_startup
-    except Exception:
-        # Prevent startup errors
-        # to not block the client
-        pass
+    for module_name in plugins_with_startup:
+        try:
+            mod = importlib.import_module(module_name)
+            if hasattr(mod, 'run_startup'):
+                await mod.run_startup()
+        except Exception as e:
+            # سجل الخطأ لو حابب، أو تجاهله عشان ما يوقف التشغيل
+            print(f"⚠️ Error in {module_name}.run_startup: {e}")
