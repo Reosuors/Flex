@@ -25,6 +25,7 @@
 - `API_ID`: معرف API الخاص بك من my.telegram.org
 - `API_HASH`: مفتاح API الخاص بك من my.telegram.org  
 - `STRING_SESSION`: جلسة Telegram المشفرة
+- `GROQ_API_KEY`: مفتاح Groq لاستخدام ميزات الذكاء الاصطناعي (.ذكاء، .ai، .انمي)
 
 ### الخطوة 2: النشر
 1. ارفع الملفات إلى مستودع GitHub
