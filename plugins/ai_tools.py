@@ -107,30 +107,31 @@ def ai_reply_simple(text: str) -> str:
     return "حاضر! فهمت سؤالك، لكن كـ'رد ذكي' مختصر: محتاج توضيح أكثر؟"
 
 async def ai_reply_openai(prompt: str) -> str:
+    """
+    الآن يعتمد فقط على Groq إن توفر وإلا يعود لرد بسيط.
+    """
     try:
-        from core.config import OPENAI_API_KEY
-        if not OPENAI_API_KEY:
-            return ai_reply_simple(prompt)
-        # Use new OpenAI SDK
-        try:
-            from openai import OpenAI
-        except Exception:
-            # SDK not installed; fallback
-            return ai_reply_simple(prompt)
-        client_ai = OpenAI(api_key=OPENAI_API_KEY)
-        system_msg = "أنت مساعد عربي لطيف ومختصر، تجيب بإيجاز وبأسلوب محترم، وترد دائمًا باللغة التي سُئلت بها."
-        resp = client_ai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.6,
-            max_tokens=150,
-        )
-        return (resp.choices[0].message.content or "").strip()
+        from core.config import GROQ_API_KEY
+        if GROQ_API_KEY:
+            from groq import Groq
+            client_ai = Groq(api_key=GROQ_API_KEY)
+            system_msg = "أنت مساعد عربي لطيف ومختصر، تجيب بإيجاز وبأسلوب محترم، وترد دائمًا باللغة التي سُئلت بها."
+            resp = client_ai.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.6,
+                max_tokens=150,
+            )
+            content = getattr(resp.choices[0].message, "content", "") if resp and resp.choices else ""
+            if content:
+                return content.strip()
     except Exception:
-        return ai_reply_simple(prompt)
+        pass
+
+    return ai_reply_simple(prompt)
 
 @client.on(events.NewMessage(outgoing=True, pattern=r"^\.ذكاء(?:\s+([\s\S]+))?$"))
 @client.on(events.NewMessage(outgoing=True, pattern=r"^\.ai(?:\s+([\s\S]+))?$"))
@@ -232,30 +233,32 @@ def guess_anime_local(description: str):
     return scores[:3]
 
 async def guess_anime_openai(description: str):
+    """
+    الآن يعتمد فقط على Groq إن توفر، وإلا يرجع None ليتولى المحلي المهمة.
+    """
     try:
-        from core.config import OPENAI_API_KEY
-        if not OPENAI_API_KEY:
-            return None
-        try:
-            from openai import OpenAI
-        except Exception:
-            return None
-        client_ai = OpenAI(api_key=OPENAI_API_KEY)
-        system_msg = (
-            "أنت خبير أنمي. سيُعطى لك وصف موجز بالعربية أو الإنجليزية، "
-            "أعطِ أفضل 3 ترشيحات لأسماء أنمي (العربي والإنجليزي إن أمكن) مع سبب قصير جدًا."
-        )
-        prompt = f"الوصف: {description}\nأعطِ 3 ترشيحات مثل: - هجوم العمالقة (Attack on Titan): سبب قصير"
-        resp = client_ai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "system", "content": system_msg}, {"role": "user", "content": prompt}],
-            temperature=0.4,
-            max_tokens=220,
-        )
-        content = (resp.choices[0].message.content or "").strip()
-        return content
+        from core.config import GROQ_API_KEY
+        if GROQ_API_KEY:
+            from groq import Groq
+            client_ai = Groq(api_key=GROQ_API_KEY)
+            system_msg = (
+                "أنت خبير أنمي. سيُعطى لك وصف موجز بالعربية أو الإنجليزية، "
+                "أعطِ أفضل 3 ترشيحات لأسماء أنمي (العربي والإنجليزي إن أمكن) مع سبب قصير جدًا."
+            )
+            prompt = f"الوصف: {description}\nأعطِ 3 ترشيحات مثل: - هجوم العمالقة (Attack on Titan): سبب قصير"
+            resp = client_ai.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "system", "content": system_msg}, {"role": "user", "content": prompt}],
+                temperature=0.4,
+                max_tokens=220,
+            )
+            content = getattr(resp.choices[0].message, "content", "") if resp and resp.choices else ""
+            if content:
+                return content.strip()
     except Exception:
-        return None
+        pass
+
+    return None
 
 @client.on(events.NewMessage(outgoing=True, pattern=r"^\.انمي(?:\s+([\s\S]+))?$"))
 @client.on(events.NewMessage(outgoing=True, pattern=r"^\.anime(?:\s+([\s\S]+))?$"))
