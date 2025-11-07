@@ -26,14 +26,18 @@ def load_all():
         'plugins.media',
         'plugins.inline_help',
         'plugins.ai_tools',
+
+        # 🚀 تم دمج "Internal interactions" هنا لحل مشكلة SyntaxError
+        'plugins.interactions',
+        'plugins.aliases',
+        'plugins.check',
+        'plugins.onboarding',
+        'plugins.log_admin',
     }
 
     # Internal interactions
-    'plugins.interactions',
-    'plugins.aliases',
-    'plugins.check',
-    'plugins.onboarding',
-    'plugins.log_admin',
+    # (تم حذف النصوص المعلقة من هنا)
+
     # Limit number of requests
     # by #plugin.membor_limit#
     # #plugin_command_limit#
@@ -45,11 +49,13 @@ async def run_startup():
     provided by plugins after
     after starting.
 
+    # ✅ تم تصحيح السطر 48 بدمجه في سطر واحد صحيح
     mod = importlib.import_module('plugins.onboarding')
+    
     if hasattr(mod,
     'run_startup'):
         await mod.run_startup
     except Exception:
         # Prevent startup errors
         # to not block the client
-        # pass
+        pass
