@@ -5,6 +5,7 @@ API_HASH = os.environ.get("API_HASH")
 STRING_SESSION = os.environ.get("STRING_SESSION")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")  # optional, for assistant bot with inline buttons
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")  # optional, for advanced AI replies
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")  # optional, prefer Groq if provided
 DATABASE_URL = os.environ.get("DATABASE_URL")  # optional, used when available
 
 def _validate() -> int:

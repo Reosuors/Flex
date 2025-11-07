@@ -27,4 +27,6 @@ services:
         fromDatabase:
           name: flex 
           property: connectionString
+      - key: GROQ_API_KEY
+        sync: false
     autoDeploy: false
