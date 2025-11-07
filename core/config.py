@@ -4,8 +4,7 @@ API_ID = os.environ.get("API_ID")
 API_HASH = os.environ.get("API_HASH")
 STRING_SESSION = os.environ.get("STRING_SESSION")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")  # optional, for assistant bot with inline buttons
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")  # optional, for AI features via Google Generative AI
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")  # optional, for AI via Groq (Llama/Mixtral)
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")  # AI via Groq (Llama/Mixtral)
 DATABASE_URL = os.environ.get("DATABASE_URL")  # optional, used when available
 
 def _validate() -> int:

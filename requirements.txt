@@ -95,5 +95,4 @@ aiohttp==3.9.5
 pybase64==1.3.2
 Flask-RESTful==0.3.10
 gunicorn
-google-generativeai
 groq
