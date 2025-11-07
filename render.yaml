@@ -21,7 +21,7 @@ services:
         sync: false
       - key: BOT_TOKEN
         sync: false
-      - key: OPENAI_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
       - key: DATABASE_URL
         fromDatabase:
